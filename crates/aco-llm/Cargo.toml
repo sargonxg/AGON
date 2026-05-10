@@ -1,0 +1,30 @@
+[package]
+name = "aco-llm"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "LLM backends (Gemini + Mock) with retry, rate limit, cost ledger, response cache."
+
+[features]
+default = []
+live-api = []
+
+[dependencies]
+aco-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+blake3 = { workspace = true }
+governor = { workspace = true }
+secrecy = { workspace = true }
+reqwest = { workspace = true }
+google-ai-rs = { workspace = true }
+parking_lot = { workspace = true }
+once_cell = { workspace = true }

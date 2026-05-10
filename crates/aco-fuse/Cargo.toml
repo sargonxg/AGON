@@ -1,0 +1,20 @@
+[package]
+name = "aco-fuse"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Canonicalization: signatures, entity resolution, event coreference, claim dedup."
+
+[dependencies]
+aco-core = { workspace = true }
+aco-llm = { workspace = true }
+aco-embed = { workspace = true }
+aco-storage = { workspace = true }
+serde = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+blake3 = { workspace = true }
+hnsw_rs = { workspace = true }

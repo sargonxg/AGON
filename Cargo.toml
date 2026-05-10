@@ -1,0 +1,119 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/aco-core",
+    "crates/aco-llm",
+    "crates/aco-embed",
+    "crates/aco-storage",
+    "crates/aco-perceive",
+    "crates/aco-fuse",
+    "crates/aco-infer",
+    "crates/aco-score",
+    "crates/aco-learn",
+    "crates/aco-cli",
+    "crates/aco-server",
+    "crates/aco-bench",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.78"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/sargonxg/AGON"
+authors = ["TACITUS <hello@tacitus.me>", "Giulio Catanzariti <giuliocatanzariti@gmail.com>"]
+
+[workspace.dependencies]
+# Core
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-opentelemetry = "0.27"
+thiserror = "1"
+anyhow = "1"
+chrono = { version = "0.4", features = ["serde"] }
+blake3 = "1"
+dashmap = "6"
+async-trait = "0.1"
+futures = "0.3"
+parking_lot = "0.12"
+once_cell = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+secrecy = { version = "0.8", features = ["serde"] }
+governor = "0.6"
+bytes = "1"
+
+# Database
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "uuid", "chrono", "json", "macros", "migrate"] }
+pgvector = { version = "0.4", features = ["sqlx"] }
+
+# Inference
+ascent = "0.8"
+z3 = { version = "0.20" }
+good_lp = { version = "1", features = ["microlp"] }
+
+# Storage
+petgraph = "0.8"
+arrow = "53"
+parquet = "53"
+
+# LLM
+google-ai-rs = { version = "0.3" }
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+
+# Embeddings
+fastembed = "5"
+hnsw_rs = "0.3"
+
+# Server
+axum = { version = "0.8", features = ["ws", "macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["trace", "cors", "compression-br", "fs"] }
+rust-embed = "8"
+jsonwebtoken = "9"
+tera = "1"
+
+# CLI
+clap = { version = "4", features = ["derive", "env"] }
+indicatif = "0.17"
+console = "0.15"
+dialoguer = "0.11"
+
+# Document parsing
+lopdf = "0.34"
+docx-rs = "0.4"
+pulldown-cmark = "0.12"
+
+# Testing
+proptest = "1"
+insta = { version = "1", features = ["json", "yaml"] }
+criterion = "0.5"
+mockall = "0.13"
+testcontainers = "0.23"
+testcontainers-modules = { version = "0.11", features = ["postgres"] }
+
+# Internal
+aco-core = { path = "crates/aco-core" }
+aco-llm = { path = "crates/aco-llm" }
+aco-embed = { path = "crates/aco-embed" }
+aco-storage = { path = "crates/aco-storage" }
+aco-perceive = { path = "crates/aco-perceive" }
+aco-fuse = { path = "crates/aco-fuse" }
+aco-infer = { path = "crates/aco-infer" }
+aco-score = { path = "crates/aco-score" }
+aco-learn = { path = "crates/aco-learn" }
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 1
+
+[profile.bench]
+inherits = "release"
+debug = true

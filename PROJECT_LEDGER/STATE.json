@@ -1,0 +1,18 @@
+{
+  "project": "AGON",
+  "mvp_target": "Sprint 1 (Days 1-7)",
+  "started": "2026-05-10",
+  "mode": "autopilot",
+  "current_day": 0,
+  "current_task": "0.1",
+  "blockers": [
+    {"id": "rust-toolchain", "status": "installing", "bg_task": "bsacd2soy"},
+    {"id": "postgres", "status": "not-installed", "options": ["winget-native", "docker-desktop"]}
+  ],
+  "external": {
+    "gemini_api_key_env": "set in .env (not committed)",
+    "github_repo": "github.com/sargonxg/AGON",
+    "cloud_target": "GCP Cloud Run (post-MVP, Day 20)"
+  },
+  "files_touched": []
+}

@@ -1,0 +1,23 @@
+[package]
+name = "aco-infer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Symbolic reasoning: ascent Datalog + z3 SMT + good_lp + abduction."
+
+[dependencies]
+aco-core = { workspace = true }
+aco-llm = { workspace = true }
+aco-storage = { workspace = true }
+aco-embed = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+ascent = { workspace = true }
+z3 = { workspace = true }
+good_lp = { workspace = true }
+chrono = { workspace = true }

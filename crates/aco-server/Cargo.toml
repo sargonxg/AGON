@@ -1,0 +1,25 @@
+[package]
+name = "aco-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Axum HTTP/WS dashboard server."
+
+[dependencies]
+aco-core = { workspace = true }
+aco-storage = { workspace = true }
+aco-infer = { workspace = true }
+aco-score = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+rust-embed = { workspace = true }
+jsonwebtoken = { workspace = true }
+tera = { workspace = true }

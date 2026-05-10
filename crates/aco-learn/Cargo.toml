@@ -1,0 +1,17 @@
+[package]
+name = "aco-learn"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Learning loop: correction log + active learning + retraining triggers."
+
+[dependencies]
+aco-core = { workspace = true }
+aco-storage = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }

@@ -1,0 +1,28 @@
+[package]
+name = "aco-storage"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Postgres + pgvector + in-memory petgraph + exports."
+
+[dependencies]
+aco-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+sqlx = { workspace = true }
+pgvector = { workspace = true }
+petgraph = { workspace = true }
+uuid = { workspace = true }
+async-trait = { workspace = true }
+secrecy = { workspace = true }
+
+[dev-dependencies]
+testcontainers = { workspace = true }
+testcontainers-modules = { workspace = true }

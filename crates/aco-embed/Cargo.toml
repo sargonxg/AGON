@@ -1,0 +1,17 @@
+[package]
+name = "aco-embed"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Semantic embedding via fastembed + HNSW for ANN."
+
+[dependencies]
+aco-core = { workspace = true }
+serde = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+fastembed = { workspace = true }
+hnsw_rs = { workspace = true }
+parking_lot = { workspace = true }

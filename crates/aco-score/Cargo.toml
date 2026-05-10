@@ -1,0 +1,18 @@
+[package]
+name = "aco-score"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Calibrated scoring: friction, risk, power, trust, repair."
+
+[dependencies]
+aco-core = { workspace = true }
+aco-storage = { workspace = true }
+aco-infer = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }
