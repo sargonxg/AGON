@@ -1,0 +1,4 @@
+name: projects/tacitus-agon-dev/policies/iam.allowedPolicyMemberDomains
+spec:
+  rules:
+  - allowAll: true

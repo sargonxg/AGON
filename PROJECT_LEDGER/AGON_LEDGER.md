@@ -50,29 +50,30 @@ Day 0 work done under the old plan (Cargo workspace, crate skeletons, basic CI) 
 
 **Goal:** end-to-end smoke run on deployed dev environment. CI/CD pipeline: `git push` → Cloud Build → Cloud Run revision.
 
-### Day 1 — `aco-core`: types and provenance
-- ◐ 1.1 Id + canonical hashing (`crates/aco-core/src/id.rs` — exists, uncommitted)
-- ◐ 1.2 Common types
-- ◐ 1.3 Eight primitives (exist as files, uncommitted)
-- ◐ 1.4 Interpersonal extensions (`patterns.rs`)
-- ◐ 1.5 Enums + FOL + errors
-- ☐ 1.6 Property tests (1000 iters/primitive)
-- ☐ 1.7 `cargo test -p aco-core` green
-- ☐ 1.8 `cargo doc -p aco-core` clean
+### Day 1 — `aco-core`: types and provenance ✓
+- ✓ 1.1 Id + canonical hashing (Blake3)
+- ✓ 1.2 Common types (EvidenceSpan, Provenance, Defeasibility, Derivation, TemporalInterval, Place)
+- ✓ 1.3 Eight primitives (Actor/Claim/Interest/Constraint/Leverage/Commitment/Event/Narrative)
+- ✓ 1.4 Interpersonal extensions (PatternFinding, AffectMarker, Emotion, RepairKind, BidResponse)
+- ✓ 1.5 Enums + FOL + errors
+- ✓ 1.6 Property tests (1000 iters/primitive serde roundtrip)
+- ✓ 1.7 `cargo test -p aco-core` green — **8 passed**
+- ✓ 1.8 `cargo doc -p aco-core` clean
 
-### Day 2 — Terraform IaC (provisions dev env)
-- ☐ 2.1 `infra/terraform/{main,variables,outputs}.tf` skeleton
-- ☐ 2.2 APIs module
-- ☐ 2.3 Network module (VPC + private service connection)
-- ☐ 2.4 Cloud SQL module (Postgres 16, private IP, pgvector + ltree)
-- ☐ 2.5 Storage module
-- ☐ 2.6 Artifact Registry module
-- ☐ 2.7 IAM module (3 SAs, least privilege)
-- ☐ 2.8 Secrets module
-- ☐ 2.9 Cloud Run module (service + Job, placeholder image)
-- ☐ 2.10 Eventarc module
-- ☐ 2.11 `envs/dev/{terraform.tfvars,backend.tf}`
-- ☐ 2.12 `make infra-apply` clean
+### Day 2 — Terraform IaC (provisions dev env) ✓
+- ✓ 2.1 main/variables/outputs.tf
+- ✓ 2.2 network module (VPC + subnet + private service connection)
+- ✓ 2.3 cloud_sql module (Postgres 16, db-f1-micro, private IP, Enterprise edition)
+- ✓ 2.4 storage module (docs + exports buckets, lifecycle rules)
+- ✓ 2.5 artifact_registry module
+- ✓ 2.6 secrets module (db password + jwt key)
+- ✓ 2.7 iam module (cloud_run SA + eventarc SA, least privilege)
+- ✓ 2.8 cloud_run module (v2 service, placeholder hello image, allUsers invoker, VPC egress)
+- ✓ 2.9 eventarc module (GCS finalized → Cloud Run /api/eventarc/upload)
+- ✓ 2.10 envs/dev/{backend,main,terraform.tfvars}.tf
+- ✓ 2.11 Org policy override: iam.allowedPolicyMemberDomains=allowAll
+- ✓ 2.12 `terraform apply` clean — **32 resources, deployed**
+- ✓ **Live URL: https://agon-dev-tbryoen6qa-uc.a.run.app (HTTP 200)**
 
 ### Day 3 — `aco-llm`: Vertex AI Gemini + Mock
 - ☐ 3.1 `LlmBackend` trait
