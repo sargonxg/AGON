@@ -26,10 +26,7 @@ fn arb_provenance() -> impl Strategy<Value = Provenance> {
         spans: vec![],
         confidence: c,
         created_at: chrono::Utc::now(),
-        defeasibility: Defeasibility {
-            class: DefeasibilityClass::Defeasible,
-            justification: None,
-        },
+        defeasibility: Defeasibility { class: DefeasibilityClass::Defeasible, justification: None },
         derivation: Derivation::Extracted { extractor: "test".into() },
     })
 }
@@ -88,10 +85,7 @@ fn smoke_all_primitives_serde() {
         }],
         confidence: 0.8,
         created_at: chrono::Utc::now(),
-        defeasibility: Defeasibility {
-            class: DefeasibilityClass::Strict,
-            justification: None,
-        },
+        defeasibility: Defeasibility { class: DefeasibilityClass::Strict, justification: None },
         derivation: Derivation::Extracted { extractor: "x".into() },
     };
     let id = Id::from_canonical("smoke");
@@ -169,8 +163,7 @@ fn smoke_all_primitives_serde() {
         verification: None,
         prov: prov.clone(),
     };
-    let _: Commitment =
-        serde_json::from_str(&serde_json::to_string(&commitment).unwrap()).unwrap();
+    let _: Commitment = serde_json::from_str(&serde_json::to_string(&commitment).unwrap()).unwrap();
 
     let event = Event {
         id,

@@ -6,7 +6,11 @@ use clap::{Parser, Subcommand};
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser, Debug)]
-#[command(name = "agon", version, about = "AGON — a Tesla-style perception engine for human conflict")]
+#[command(
+    name = "agon",
+    version,
+    about = "AGON — a Tesla-style perception engine for human conflict"
+)]
 struct Cli {
     #[command(subcommand)]
     cmd: Cmd,
@@ -20,7 +24,9 @@ enum Cmd {
 
 fn main() -> Result<()> {
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
         .with_target(false)
         .init();
 

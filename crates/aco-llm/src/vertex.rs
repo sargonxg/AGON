@@ -131,10 +131,17 @@ impl VertexAiBackend {
             .send().await;
         let token = match md {
             Ok(r) if r.status().is_success() => {
-                let body: serde_json::Value = r.json().await.map_err(|e| LlmError::Decode(e.to_string()))?;
-                let tok = body["access_token"].as_str().ok_or_else(|| LlmError::Auth("no access_token in metadata response".into()))?.to_string();
+                let body: serde_json::Value =
+                    r.json().await.map_err(|e| LlmError::Decode(e.to_string()))?;
+                let tok = body["access_token"]
+                    .as_str()
+                    .ok_or_else(|| LlmError::Auth("no access_token in metadata response".into()))?
+                    .to_string();
                 let secs = body["expires_in"].as_u64().unwrap_or(3000);
-                let cached = CachedToken { value: tok.clone(), expires_at: Instant::now() + Duration::from_secs(secs) };
+                let cached = CachedToken {
+                    value: tok.clone(),
+                    expires_at: Instant::now() + Duration::from_secs(secs),
+                };
                 *self.token.write() = Some(cached);
                 tok
             }
@@ -152,7 +159,10 @@ impl VertexAiBackend {
                     )));
                 }
                 let tok = String::from_utf8_lossy(&out.stdout).trim().to_string();
-                let cached = CachedToken { value: tok.clone(), expires_at: Instant::now() + Duration::from_secs(3000) };
+                let cached = CachedToken {
+                    value: tok.clone(),
+                    expires_at: Instant::now() + Duration::from_secs(3000),
+                };
                 *self.token.write() = Some(cached);
                 tok
             }
@@ -173,7 +183,10 @@ impl LlmBackend for VertexAiBackend {
 
         let body = GenerateRequest {
             contents: vec![GenContent { role: "user", parts: vec![GenPart { text: &req.user }] }],
-            system_instruction: Some(GenContent { role: "system", parts: vec![GenPart { text: &req.system }] }),
+            system_instruction: Some(GenContent {
+                role: "system",
+                parts: vec![GenPart { text: &req.system }],
+            }),
             generation_config: GenerationConfig {
                 temperature: req.temperature.unwrap_or(0.0),
                 max_output_tokens: req.max_output_tokens.unwrap_or(2048),
@@ -182,10 +195,13 @@ impl LlmBackend for VertexAiBackend {
             },
         };
 
-        let resp = self.http.post(&url)
+        let resp = self
+            .http
+            .post(&url)
             .bearer_auth(&token)
             .json(&body)
-            .send().await
+            .send()
+            .await
             .map_err(|e| LlmError::Http(e.to_string()))?;
 
         let status = resp.status();
@@ -197,12 +213,15 @@ impl LlmBackend for VertexAiBackend {
             return Err(LlmError::Http(format!("{status}: {txt}")));
         }
 
-        let gen: GenerateResponse = resp.json().await.map_err(|e| LlmError::Decode(e.to_string()))?;
-        let cand = gen.candidates
+        let gen: GenerateResponse =
+            resp.json().await.map_err(|e| LlmError::Decode(e.to_string()))?;
+        let cand = gen
+            .candidates
             .and_then(|c| c.into_iter().next())
             .ok_or_else(|| LlmError::Decode("no candidates".into()))?;
         let finish = cand.finish_reason.clone().unwrap_or_default();
-        let text = cand.content
+        let text = cand
+            .content
             .and_then(|c| c.parts)
             .and_then(|p| p.into_iter().next())
             .and_then(|p| p.text)
@@ -221,10 +240,12 @@ impl LlmBackend for VertexAiBackend {
                 let salvaged = salvage_json(&text);
                 match salvaged.and_then(|s| serde_json::from_str(&s).ok()) {
                     Some(v) => v,
-                    None => return Err(LlmError::Schema(format!(
-                        "not valid JSON: {e}; finish={finish}; preview: {}",
-                        text.chars().take(300).collect::<String>()
-                    ))),
+                    None => {
+                        return Err(LlmError::Schema(format!(
+                            "not valid JSON: {e}; finish={finish}; preview: {}",
+                            text.chars().take(300).collect::<String>()
+                        )))
+                    }
                 }
             }
         };
@@ -246,26 +267,41 @@ impl LlmBackend for VertexAiBackend {
             "https://{loc}-aiplatform.googleapis.com/v1/projects/{proj}/locations/{loc}/publishers/google/models/text-embedding-005:predict",
             loc = self.location, proj = self.project_id,
         );
-        let instances: Vec<Value> = texts.iter().map(|t| json!({ "content": t, "task_type": "RETRIEVAL_DOCUMENT" })).collect();
+        let instances: Vec<Value> = texts
+            .iter()
+            .map(|t| json!({ "content": t, "task_type": "RETRIEVAL_DOCUMENT" }))
+            .collect();
         let body = json!({ "instances": instances });
 
-        let resp = self.http.post(&url)
+        let resp = self
+            .http
+            .post(&url)
             .bearer_auth(&token)
             .json(&body)
-            .send().await
+            .send()
+            .await
             .map_err(|e| LlmError::Http(e.to_string()))?;
 
         if !resp.status().is_success() {
-            return Err(LlmError::Http(format!("{}: {}", resp.status(), resp.text().await.unwrap_or_default())));
+            return Err(LlmError::Http(format!(
+                "{}: {}",
+                resp.status(),
+                resp.text().await.unwrap_or_default()
+            )));
         }
 
         let body: Value = resp.json().await.map_err(|e| LlmError::Decode(e.to_string()))?;
-        let preds = body["predictions"].as_array().ok_or_else(|| LlmError::Decode("no predictions".into()))?;
-        let vectors: Vec<Vec<f32>> = preds.iter().filter_map(|p| {
-            p["embeddings"]["values"].as_array().map(|arr| {
-                arr.iter().filter_map(|v| v.as_f64().map(|f| f as f32)).collect()
+        let preds = body["predictions"]
+            .as_array()
+            .ok_or_else(|| LlmError::Decode("no predictions".into()))?;
+        let vectors: Vec<Vec<f32>> = preds
+            .iter()
+            .filter_map(|p| {
+                p["embeddings"]["values"]
+                    .as_array()
+                    .map(|arr| arr.iter().filter_map(|v| v.as_f64().map(|f| f as f32)).collect())
             })
-        }).collect();
+            .collect();
 
         Ok(EmbedResponse { vectors, model: "text-embedding-005".into() })
     }
@@ -285,8 +321,12 @@ fn salvage_json(s: &str) -> Option<String> {
     let mut in_string = false;
     let mut escape = false;
     let mut last_complete = 0usize;
+    let mut last_stack: Vec<u8> = Vec::new();
     for (i, &b) in bytes.iter().enumerate() {
-        if escape { escape = false; continue; }
+        if escape {
+            escape = false;
+            continue;
+        }
         if in_string {
             match b {
                 b'\\' => escape = true,
@@ -299,16 +339,25 @@ fn salvage_json(s: &str) -> Option<String> {
             b'"' => in_string = true,
             b'{' => stack.push(b'}'),
             b'[' => stack.push(b']'),
-            b'}' | b']' => { stack.pop(); if stack.is_empty() { last_complete = i + 1; } }
-            b',' if stack.len() == 1 => last_complete = i,
+            b'}' | b']' => {
+                stack.pop();
+                last_complete = i + 1;
+                last_stack = stack.clone();
+            }
+            b',' if stack.len() == 1 => {
+                last_complete = i;
+                last_stack = stack.clone();
+            }
             _ => {}
         }
     }
-    if in_string || stack.is_empty() { return None; }
+    if last_complete == 0 {
+        return None;
+    }
     let trimmed = &s[..last_complete];
     // Strip trailing comma if present.
     let trimmed = trimmed.trim_end_matches(|c: char| c.is_whitespace() || c == ',');
-    let closes: String = stack.iter().rev().map(|&b| b as char).collect();
+    let closes: String = last_stack.iter().rev().map(|&b| b as char).collect();
     Some(format!("{trimmed}{closes}"))
 }
 

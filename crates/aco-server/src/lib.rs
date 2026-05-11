@@ -2,7 +2,7 @@
 #![forbid(unsafe_code)]
 
 pub mod app;
-pub mod prompts;
 pub mod pretransform;
+pub mod prompts;
 
 pub use app::{build_app, AppState};

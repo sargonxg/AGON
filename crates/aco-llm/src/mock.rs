@@ -44,12 +44,7 @@ impl LlmBackend for MockLlmBackend {
         let model = req.model.unwrap_or_else(|| "mock".into());
         self.cost.record(&model, in_t, out_t);
 
-        Ok(ExtractResponse {
-            value,
-            model,
-            input_tokens: in_t,
-            output_tokens: out_t,
-        })
+        Ok(ExtractResponse { value, model, input_tokens: in_t, output_tokens: out_t })
     }
 
     async fn embed(&self, texts: &[String]) -> Result<EmbedResponse, LlmError> {
@@ -63,10 +58,7 @@ impl LlmBackend for MockLlmBackend {
                 v
             })
             .collect();
-        Ok(EmbedResponse {
-            vectors,
-            model: "mock-embed".into(),
-        })
+        Ok(EmbedResponse { vectors, model: "mock-embed".into() })
     }
 
     fn name(&self) -> &'static str {

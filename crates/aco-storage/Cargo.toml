@@ -20,6 +20,7 @@ sqlx = { workspace = true }
 uuid = { workspace = true }
 async-trait = { workspace = true }
 secrecy = { workspace = true }
+blake3 = { workspace = true }
 
 [dev-dependencies]
 testcontainers = { workspace = true }

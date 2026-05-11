@@ -71,3 +71,8 @@ pub trait LlmBackend: Send + Sync {
     async fn embed(&self, texts: &[String]) -> Result<EmbedResponse, LlmError>;
     fn name(&self) -> &'static str;
 }
+
+/// Emit an init span; called by binaries that want to confirm the crate loaded.
+pub fn init() {
+    tracing::trace!(crate_name = "aco-llm", version = env!("CARGO_PKG_VERSION"), "loaded");
+}

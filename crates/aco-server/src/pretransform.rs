@@ -35,9 +35,9 @@ pub struct PreCanonical {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum FormatHint {
-    Dialog,    // most lines have `Speaker: ...` or `Speaker (ts): ...`
-    Transcript,// turn: speaker: ... (formal)
-    Prose,     // narrative paragraphs
+    Dialog,     // most lines have `Speaker: ...` or `Speaker (ts): ...`
+    Transcript, // turn: speaker: ... (formal)
+    Prose,      // narrative paragraphs
     Unknown,
 }
 
@@ -75,7 +75,11 @@ pub fn transform(input: &str) -> PreCanonical {
 
     let format_hint = if turns.is_empty() {
         FormatHint::Prose
-    } else if turns.len() >= 3 && speakers_seen.iter().any(|s| s.contains('.') || s.chars().all(|c| c.is_uppercase() || c == ' ')) {
+    } else if turns.len() >= 3
+        && speakers_seen
+            .iter()
+            .any(|s| s.contains('.') || s.chars().all(|c| c.is_uppercase() || c == ' '))
+    {
         FormatHint::Transcript
     } else if !turns.is_empty() {
         FormatHint::Dialog
@@ -94,7 +98,10 @@ pub fn render_envelope(pc: &PreCanonical) -> String {
         return String::new();
     }
     let mut s = String::from("=== Pre-canonical envelope (deterministic, do not paraphrase) ===\n");
-    s.push_str(&format!("format: {:?}\nturns: {}\nchars: {}\n", pc.format_hint, pc.n_turns, pc.n_chars));
+    s.push_str(&format!(
+        "format: {:?}\nturns: {}\nchars: {}\n",
+        pc.format_hint, pc.n_turns, pc.n_chars
+    ));
     s.push_str("speakers (canonical):\n");
     for sp in &pc.speakers {
         let id = canonical_id(sp);

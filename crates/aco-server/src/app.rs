@@ -12,15 +12,15 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use futures::stream::Stream;
-use std::convert::Infallible;
-use tokio::sync::mpsc;
-use tokio_stream::wrappers::UnboundedReceiverStream;
 use chrono::Utc;
+use futures::stream::Stream;
 use rust_embed::RustEmbed;
 use serde::{Deserialize, Serialize};
+use std::convert::Infallible;
 use std::sync::Arc;
 use std::time::Instant;
+use tokio::sync::mpsc;
+use tokio_stream::wrappers::UnboundedReceiverStream;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use uuid::Uuid;
@@ -119,15 +119,17 @@ async fn asset(AxPath(p): AxPath<String>) -> Response {
 fn mime_for(p: &str) -> &'static str {
     match p.rsplit_once('.').map(|(_, e)| e) {
         Some("html") => "text/html; charset=utf-8",
-        Some("js")   => "application/javascript; charset=utf-8",
-        Some("css")  => "text/css; charset=utf-8",
-        Some("svg")  => "image/svg+xml",
+        Some("js") => "application/javascript; charset=utf-8",
+        Some("css") => "text/css; charset=utf-8",
+        Some("svg") => "image/svg+xml",
         Some("json") => "application/json",
         _ => "application/octet-stream",
     }
 }
 
-async fn healthz() -> &'static str { "ok" }
+async fn healthz() -> &'static str {
+    "ok"
+}
 
 async fn readyz(State(s): State<Arc<AppState>>) -> Json<serde_json::Value> {
     Json(serde_json::json!({
@@ -173,27 +175,50 @@ fn resolve_model(m: Option<&str>) -> String {
 /// Compute an actor-vs-actor friction matrix from claims + contradictions + patterns.
 fn friction_matrix(x: &serde_json::Value) -> serde_json::Value {
     use std::collections::HashMap;
-    let actors: Vec<String> = x.get("actors").and_then(|v| v.as_array())
-        .map(|a| a.iter().filter_map(|o| o.get("id").and_then(|i| i.as_str()).map(String::from)).collect())
+    let actors: Vec<String> = x
+        .get("actors")
+        .and_then(|v| v.as_array())
+        .map(|a| {
+            a.iter()
+                .filter_map(|o| o.get("id").and_then(|i| i.as_str()).map(String::from))
+                .collect()
+        })
         .unwrap_or_default();
-    let actor_label: HashMap<String, String> = x.get("actors").and_then(|v| v.as_array())
-        .map(|a| a.iter().filter_map(|o| {
-            let id = o.get("id").and_then(|i| i.as_str())?;
-            let lab = o.get("label").and_then(|i| i.as_str()).unwrap_or(id);
-            Some((id.to_string(), lab.to_string()))
-        }).collect()).unwrap_or_default();
-    let claim_owner: HashMap<String, String> = x.get("claims").and_then(|v| v.as_array())
-        .map(|a| a.iter().filter_map(|c| {
-            let id = c.get("id").and_then(|i| i.as_str())?;
-            let actor = c.get("actor_id").and_then(|i| i.as_str())?;
-            Some((id.to_string(), actor.to_string()))
-        }).collect()).unwrap_or_default();
+    let actor_label: HashMap<String, String> = x
+        .get("actors")
+        .and_then(|v| v.as_array())
+        .map(|a| {
+            a.iter()
+                .filter_map(|o| {
+                    let id = o.get("id").and_then(|i| i.as_str())?;
+                    let lab = o.get("label").and_then(|i| i.as_str()).unwrap_or(id);
+                    Some((id.to_string(), lab.to_string()))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let claim_owner: HashMap<String, String> = x
+        .get("claims")
+        .and_then(|v| v.as_array())
+        .map(|a| {
+            a.iter()
+                .filter_map(|c| {
+                    let id = c.get("id").and_then(|i| i.as_str())?;
+                    let actor = c.get("actor_id").and_then(|i| i.as_str())?;
+                    Some((id.to_string(), actor.to_string()))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
 
     // matrix[a][b] = float weight
     let mut m: HashMap<(String, String), f64> = HashMap::new();
     let mut bump = |a: &str, b: &str, w: f64| {
-        if a == b { return; }
-        let (lo, hi) = if a < b { (a.to_string(), b.to_string()) } else { (b.to_string(), a.to_string()) };
+        if a == b {
+            return;
+        }
+        let (lo, hi) =
+            if a < b { (a.to_string(), b.to_string()) } else { (b.to_string(), a.to_string()) };
         *m.entry((lo, hi)).or_insert(0.0) += w;
     };
 
@@ -202,7 +227,11 @@ fn friction_matrix(x: &serde_json::Value) -> serde_json::Value {
         for c in arr {
             let a_claim = c.get("claim_a").and_then(|v| v.as_str()).unwrap_or("");
             let b_claim = c.get("claim_b").and_then(|v| v.as_str()).unwrap_or("");
-            let w = if c.get("materiality").and_then(|v| v.as_str()) == Some("material") { 2.0 } else { 0.6 };
+            let w = if c.get("materiality").and_then(|v| v.as_str()) == Some("material") {
+                2.0
+            } else {
+                0.6
+            };
             if let (Some(a), Some(b)) = (claim_owner.get(a_claim), claim_owner.get(b_claim)) {
                 bump(a, b, w);
             }
@@ -215,7 +244,9 @@ fn friction_matrix(x: &serde_json::Value) -> serde_json::Value {
                 if let Some(a) = c.get("actor_id").and_then(|v| v.as_str()) {
                     // Spread denial over all other actors as small weight.
                     for other in &actors {
-                        if other != a { bump(a, other, 0.4); }
+                        if other != a {
+                            bump(a, other, 0.4);
+                        }
                     }
                 }
             }
@@ -232,20 +263,27 @@ fn friction_matrix(x: &serde_json::Value) -> serde_json::Value {
             };
             if let Some(a) = p.get("actor_id").and_then(|v| v.as_str()) {
                 for other in &actors {
-                    if other != a { bump(a, other, w); }
+                    if other != a {
+                        bump(a, other, w);
+                    }
                 }
             }
         }
     }
 
-    let pairs: Vec<serde_json::Value> = m.into_iter().map(|((a, b), w)| serde_json::json!({
-        "a": a,
-        "b": b,
-        "a_label": actor_label.get(&a).cloned().unwrap_or(a.clone()),
-        "b_label": actor_label.get(&b).cloned().unwrap_or(b.clone()),
-        "weight": (w * 100.0).round() / 100.0,
-        "heat": ((w * 30.0).min(100.0)).round() as i64,
-    })).collect();
+    let pairs: Vec<serde_json::Value> = m
+        .into_iter()
+        .map(|((a, b), w)| {
+            serde_json::json!({
+                "a": a,
+                "b": b,
+                "a_label": actor_label.get(&a).cloned().unwrap_or(a.clone()),
+                "b_label": actor_label.get(&b).cloned().unwrap_or(b.clone()),
+                "weight": (w * 100.0).round() / 100.0,
+                "heat": ((w * 30.0).min(100.0)).round() as i64,
+            })
+        })
+        .collect();
 
     serde_json::json!({ "actors": actors, "pairs": pairs })
 }
@@ -274,7 +312,11 @@ async fn perceive(
     let source_text = body.text.clone();
     let pc = pretransform::transform(&source_text);
     let envelope = pretransform::render_envelope(&pc);
-    let user_payload = if envelope.is_empty() { source_text.clone() } else { format!("{envelope}\n{source_text}") };
+    let user_payload = if envelope.is_empty() {
+        source_text.clone()
+    } else {
+        format!("{envelope}\n{source_text}")
+    };
 
     let req = ExtractRequest {
         system: PERCEIVE_SYSTEM.into(),
@@ -285,8 +327,8 @@ async fn perceive(
         max_output_tokens: Some(16384),
     };
 
-    let resp = s.backend.extract_json(req).await
-        .map_err(|e| (StatusCode::BAD_GATEWAY, format!("{e}")))?;
+    let resp =
+        s.backend.extract_json(req).await.map_err(|e| (StatusCode::BAD_GATEWAY, format!("{e}")))?;
 
     let elapsed = started.elapsed();
     let x = &resp.value;
@@ -315,9 +357,12 @@ async fn perceive(
             extraction: resp.value.clone(),
             summary,
         };
-        match store.insert_session(&sess).await {
-            Ok(()) => { session_id = Some(sess.id); persisted = true; }
-            Err(e) => tracing::warn!("insert_session: {e}"),
+        match store.insert_perception(&sess).await {
+            Ok(_) => {
+                session_id = Some(sess.id);
+                persisted = true;
+            }
+            Err(e) => tracing::warn!("insert_perception: {e}"),
         }
     }
 
@@ -342,8 +387,13 @@ async fn perceive_stream(
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let (tx, rx) = mpsc::unbounded_channel::<Result<Event, Infallible>>();
 
-    let emit = |tx: &mpsc::UnboundedSender<Result<Event, Infallible>>, name: &str, data: serde_json::Value| {
-        let _ = tx.send(Ok(Event::default().event(name).json_data(data).unwrap_or_else(|_| Event::default().event(name))));
+    let emit = |tx: &mpsc::UnboundedSender<Result<Event, Infallible>>,
+                name: &str,
+                data: serde_json::Value| {
+        let _ = tx.send(Ok(Event::default()
+            .event(name)
+            .json_data(data)
+            .unwrap_or_else(|_| Event::default().event(name))));
     };
 
     tokio::spawn(async move {
@@ -354,25 +404,33 @@ async fn perceive_stream(
         let n_chars = source_text.chars().count();
         let n_lines = source_text.lines().count();
 
-        emit(&tx, "stage", serde_json::json!({
-            "stage": "validating",
-            "msg": "checking input",
-            "chars": n_chars,
-            "lines": n_lines,
-            "elapsed_ms": t_stage.elapsed().as_millis(),
-        }));
+        emit(
+            &tx,
+            "stage",
+            serde_json::json!({
+                "stage": "validating",
+                "msg": "checking input",
+                "chars": n_chars,
+                "lines": n_lines,
+                "elapsed_ms": t_stage.elapsed().as_millis(),
+            }),
+        );
 
         t_stage = Instant::now();
         let pc = pretransform::transform(&source_text);
         let envelope = pretransform::render_envelope(&pc);
-        emit(&tx, "stage", serde_json::json!({
-            "stage": "pre_canonical",
-            "msg": "deterministic envelope built",
-            "format": format!("{:?}", pc.format_hint),
-            "turns": pc.n_turns,
-            "speakers": pc.speakers,
-            "elapsed_ms": t_stage.elapsed().as_millis(),
-        }));
+        emit(
+            &tx,
+            "stage",
+            serde_json::json!({
+                "stage": "pre_canonical",
+                "msg": "deterministic envelope built",
+                "format": format!("{:?}", pc.format_hint),
+                "turns": pc.n_turns,
+                "speakers": pc.speakers,
+                "elapsed_ms": t_stage.elapsed().as_millis(),
+            }),
+        );
 
         if source_text.trim().is_empty() {
             emit(&tx, "error", serde_json::json!({"error": "empty input"}));
@@ -388,11 +446,15 @@ async fn perceive_stream(
         };
 
         t_stage = Instant::now();
-        emit(&tx, "stage", serde_json::json!({
-            "stage": "auth",
-            "msg": "fetching service-account token",
-            "backend": s.backend_name,
-        }));
+        emit(
+            &tx,
+            "stage",
+            serde_json::json!({
+                "stage": "auth",
+                "msg": "fetching service-account token",
+                "backend": s.backend_name,
+            }),
+        );
 
         // Build request — prepend deterministic envelope.
         let user_payload = if envelope.is_empty() {
@@ -411,11 +473,15 @@ async fn perceive_stream(
         let auth_ms = t_stage.elapsed().as_millis();
 
         t_stage = Instant::now();
-        emit(&tx, "stage", serde_json::json!({
-            "stage": "calling_vertex",
-            "msg": "Vertex AI Gemini 2.5 Flash · schema-constrained generation",
-            "auth_ms": auth_ms,
-        }));
+        emit(
+            &tx,
+            "stage",
+            serde_json::json!({
+                "stage": "calling_vertex",
+                "msg": "Vertex AI Gemini 2.5 Flash · schema-constrained generation",
+                "auth_ms": auth_ms,
+            }),
+        );
 
         let resp = match s.backend.extract_json(req).await {
             Ok(r) => r,
@@ -426,19 +492,24 @@ async fn perceive_stream(
         };
         let vertex_ms = t_stage.elapsed().as_millis();
 
-        emit(&tx, "stage", serde_json::json!({
-            "stage": "vertex_done",
-            "msg": "model response received",
-            "model": resp.model,
-            "input_tokens": resp.input_tokens,
-            "output_tokens": resp.output_tokens,
-            "elapsed_ms": vertex_ms,
-            "tokens_per_sec": if vertex_ms > 0 { (resp.output_tokens as f64) / (vertex_ms as f64 / 1000.0) } else { 0.0 },
-        }));
+        emit(
+            &tx,
+            "stage",
+            serde_json::json!({
+                "stage": "vertex_done",
+                "msg": "model response received",
+                "model": resp.model,
+                "input_tokens": resp.input_tokens,
+                "output_tokens": resp.output_tokens,
+                "elapsed_ms": vertex_ms,
+                "tokens_per_sec": if vertex_ms > 0 { (resp.output_tokens as f64) / (vertex_ms as f64 / 1000.0) } else { 0.0 },
+            }),
+        );
 
         t_stage = Instant::now();
         let x = &resp.value;
-        let count = |k: &str| x.get(k).and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0) as i32;
+        let count =
+            |k: &str| x.get(k).and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0) as i32;
         let n_actors = count("actors");
         let n_claims = count("claims");
         let n_events = count("events");
@@ -448,26 +519,34 @@ async fn perceive_stream(
         let summary = x.get("summary").and_then(|v| v.as_str()).unwrap_or("").to_string();
         let parsing_ms = t_stage.elapsed().as_millis();
 
-        emit(&tx, "stage", serde_json::json!({
-            "stage": "parsing",
-            "msg": "primitive counting & friction extracted",
-            "elapsed_ms": parsing_ms,
-            "n_actors": n_actors,
-            "n_claims": n_claims,
-            "n_events": n_events,
-            "n_patterns": n_patterns,
-            "n_contradictions": n_contradictions,
-            "friction_score": friction,
-        }));
+        emit(
+            &tx,
+            "stage",
+            serde_json::json!({
+                "stage": "parsing",
+                "msg": "primitive counting & friction extracted",
+                "elapsed_ms": parsing_ms,
+                "n_actors": n_actors,
+                "n_claims": n_claims,
+                "n_events": n_events,
+                "n_patterns": n_patterns,
+                "n_contradictions": n_contradictions,
+                "friction_score": friction,
+            }),
+        );
 
         let mut session_id: Option<Uuid> = None;
         let mut persisted = false;
         if let Some(store) = &s.store {
             t_stage = Instant::now();
-            emit(&tx, "stage", serde_json::json!({
-                "stage": "persisting",
-                "msg": "writing session to Cloud SQL",
-            }));
+            emit(
+                &tx,
+                "stage",
+                serde_json::json!({
+                    "stage": "persisting",
+                    "msg": "writing session to Cloud SQL",
+                }),
+            );
             let sess = Session {
                 id: Uuid::new_v4(),
                 created_at: Utc::now(),
@@ -485,40 +564,55 @@ async fn perceive_stream(
                 extraction: resp.value.clone(),
                 summary,
             };
-            match store.insert_session(&sess).await {
-                Ok(()) => { session_id = Some(sess.id); persisted = true; }
+            match store.insert_perception(&sess).await {
+                Ok(_) => {
+                    session_id = Some(sess.id);
+                    persisted = true;
+                }
                 Err(e) => emit(&tx, "warn", serde_json::json!({"warn": format!("insert: {e}")})),
             }
-            emit(&tx, "stage", serde_json::json!({
-                "stage": "persisted",
-                "msg": if persisted { "saved to Cloud SQL" } else { "skipped" },
-                "session_id": session_id,
-                "elapsed_ms": t_stage.elapsed().as_millis(),
-            }));
+            emit(
+                &tx,
+                "stage",
+                serde_json::json!({
+                    "stage": "persisted",
+                    "msg": if persisted { "saved to Cloud SQL" } else { "skipped" },
+                    "session_id": session_id,
+                    "elapsed_ms": t_stage.elapsed().as_millis(),
+                }),
+            );
         }
 
         let fmatrix = friction_matrix(&resp.value);
-        emit(&tx, "result", serde_json::json!({
-            "session_id": session_id,
-            "elapsed_ms": overall.elapsed().as_millis(),
-            "model": resp.model,
-            "input_tokens": resp.input_tokens,
-            "output_tokens": resp.output_tokens,
-            "persisted": persisted,
-            "pre_canonical": pc,
-            "friction_matrix": fmatrix,
-            "extraction": resp.value,
-        }));
+        emit(
+            &tx,
+            "result",
+            serde_json::json!({
+                "session_id": session_id,
+                "elapsed_ms": overall.elapsed().as_millis(),
+                "model": resp.model,
+                "input_tokens": resp.input_tokens,
+                "output_tokens": resp.output_tokens,
+                "persisted": persisted,
+                "pre_canonical": pc,
+                "friction_matrix": fmatrix,
+                "extraction": resp.value,
+            }),
+        );
     });
 
     Sse::new(UnboundedReceiverStream::new(rx)).keep_alive(KeepAlive::default())
 }
 
-async fn list_sessions(State(s): State<Arc<AppState>>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+async fn list_sessions(
+    State(s): State<Arc<AppState>>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let Some(store) = &s.store else {
         return Ok(Json(serde_json::json!({"sessions": [], "db": false})));
     };
-    let v = store.recent_sessions(50).await
+    let v = store
+        .recent_sessions(50)
+        .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     Ok(Json(serde_json::json!({"sessions": v, "db": true})))
 }

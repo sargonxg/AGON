@@ -54,7 +54,10 @@ impl FromStr for Id {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.len() != 64 {
-            return Err(crate::error::Error::BadId(format!("expected 64 hex chars, got {}", s.len())));
+            return Err(crate::error::Error::BadId(format!(
+                "expected 64 hex chars, got {}",
+                s.len()
+            )));
         }
         let mut out = [0u8; 32];
         for (i, chunk) in s.as_bytes().chunks(2).enumerate() {
