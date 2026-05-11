@@ -61,7 +61,7 @@ impl Store {
     pub async fn connect(dsn: &str) -> Result<Self, StoreError> {
         let pool = PgPoolOptions::new()
             .max_connections(5)
-            .acquire_timeout(Duration::from_secs(10))
+            .acquire_timeout(Duration::from_secs(60))
             .connect(dsn)
             .await?;
         Ok(Self { pool })
