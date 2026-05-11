@@ -23,7 +23,26 @@
     <textarea id="text" placeholder="Paste 2–10 paragraphs of conflict text here. Example: a message thread, a board minutes excerpt, a deposition snippet, a co-parenting WhatsApp transcript…"></textarea>
 
     <div class="controls">
-      <button id="sample">Load sample</button>
+      <span class="picker">
+        <label>sample</label>
+        <select id="sample-select">
+          <option value="">— choose —</option>
+          <option value="workplace">workplace · q4 deck deadline</option>
+          <option value="coparenting">family · co-parenting pickup</option>
+          <option value="board">governance · q1/q2 board minutes</option>
+          <option value="commercial">commercial · vendor pricing</option>
+          <option value="diplomatic">diplomatic · maritime boundary</option>
+          <option value="hr">workplace · hr complaint</option>
+        </select>
+      </span>
+      <span class="picker">
+        <label>model</label>
+        <select id="model-select">
+          <option value="flash">flash · 2.5 (fast)</option>
+          <option value="flash-lite">flash-lite (fastest)</option>
+          <option value="pro">pro · 2.5 (smartest)</option>
+        </select>
+      </span>
       <button id="run" class="primary">Perceive →</button>
       <span id="status" class="status"></span>
     </div>
@@ -52,6 +71,17 @@
       <p id="summary"></p>
     </div>
 
+    <div class="dual">
+      <div class="panel">
+        <h3>Friction matrix (actor × actor)</h3>
+        <div id="heatmap" class="heatmap"></div>
+      </div>
+      <div class="panel">
+        <h3>Pre-canonical envelope</h3>
+        <div id="precanon" class="precanon"></div>
+      </div>
+    </div>
+
     <div class="panel wide">
       <h3>Graph</h3>
       <svg id="graph" viewBox="0 0 1200 480" preserveAspectRatio="xMidYMid meet"></svg>
@@ -61,6 +91,7 @@
         <span class="dot event"></span>event
         <span class="dot commitment"></span>commitment
         <span class="dot interest"></span>interest
+        <span style="margin-left:auto;color:var(--muted);">edges: ASSERTED · COMMITS_TO · HOLDS_INTEREST · <span style="color:var(--bad)">CONTRADICTS</span></span>
       </div>
     </div>
 

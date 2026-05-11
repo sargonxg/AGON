@@ -3,5 +3,6 @@
 
 pub mod app;
 pub mod prompts;
+pub mod pretransform;
 
 pub use app::{build_app, AppState};

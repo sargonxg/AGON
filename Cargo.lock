@@ -178,6 +178,8 @@ dependencies = [
  "axum",
  "chrono",
  "futures",
+ "once_cell",
+ "regex",
  "rust-embed",
  "serde",
  "serde_json",

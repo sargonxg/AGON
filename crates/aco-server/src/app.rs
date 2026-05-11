@@ -1,5 +1,6 @@
 //! HTTP routes + state.
 
+use crate::pretransform::{self, PreCanonical};
 use crate::prompts::{PERCEIVE_SCHEMA, PERCEIVE_SYSTEM};
 use aco_llm::{ExtractRequest, LlmBackend, MockLlmBackend, VertexAiBackend};
 use aco_storage::{Session, Store};
@@ -160,6 +161,95 @@ struct PerceiveBody {
     model: Option<String>,
 }
 
+fn resolve_model(m: Option<&str>) -> String {
+    match m.unwrap_or("flash") {
+        "flash-lite" | "lite" => "gemini-2.5-flash-lite".into(),
+        "pro" | "smart" => "gemini-2.5-pro".into(),
+        "flash" | "" => "gemini-2.5-flash".into(),
+        other => other.into(),
+    }
+}
+
+/// Compute an actor-vs-actor friction matrix from claims + contradictions + patterns.
+fn friction_matrix(x: &serde_json::Value) -> serde_json::Value {
+    use std::collections::HashMap;
+    let actors: Vec<String> = x.get("actors").and_then(|v| v.as_array())
+        .map(|a| a.iter().filter_map(|o| o.get("id").and_then(|i| i.as_str()).map(String::from)).collect())
+        .unwrap_or_default();
+    let actor_label: HashMap<String, String> = x.get("actors").and_then(|v| v.as_array())
+        .map(|a| a.iter().filter_map(|o| {
+            let id = o.get("id").and_then(|i| i.as_str())?;
+            let lab = o.get("label").and_then(|i| i.as_str()).unwrap_or(id);
+            Some((id.to_string(), lab.to_string()))
+        }).collect()).unwrap_or_default();
+    let claim_owner: HashMap<String, String> = x.get("claims").and_then(|v| v.as_array())
+        .map(|a| a.iter().filter_map(|c| {
+            let id = c.get("id").and_then(|i| i.as_str())?;
+            let actor = c.get("actor_id").and_then(|i| i.as_str())?;
+            Some((id.to_string(), actor.to_string()))
+        }).collect()).unwrap_or_default();
+
+    // matrix[a][b] = float weight
+    let mut m: HashMap<(String, String), f64> = HashMap::new();
+    let mut bump = |a: &str, b: &str, w: f64| {
+        if a == b { return; }
+        let (lo, hi) = if a < b { (a.to_string(), b.to_string()) } else { (b.to_string(), a.to_string()) };
+        *m.entry((lo, hi)).or_insert(0.0) += w;
+    };
+
+    // Contradictions: heavy
+    if let Some(arr) = x.get("contradictions").and_then(|v| v.as_array()) {
+        for c in arr {
+            let a_claim = c.get("claim_a").and_then(|v| v.as_str()).unwrap_or("");
+            let b_claim = c.get("claim_b").and_then(|v| v.as_str()).unwrap_or("");
+            let w = if c.get("materiality").and_then(|v| v.as_str()) == Some("material") { 2.0 } else { 0.6 };
+            if let (Some(a), Some(b)) = (claim_owner.get(a_claim), claim_owner.get(b_claim)) {
+                bump(a, b, w);
+            }
+        }
+    }
+    // Negative-polarity claims pointed at others: light
+    if let Some(arr) = x.get("claims").and_then(|v| v.as_array()) {
+        for c in arr {
+            if c.get("polarity").and_then(|v| v.as_str()) == Some("deny") {
+                if let Some(a) = c.get("actor_id").and_then(|v| v.as_str()) {
+                    // Spread denial over all other actors as small weight.
+                    for other in &actors {
+                        if other != a { bump(a, other, 0.4); }
+                    }
+                }
+            }
+        }
+    }
+    // Patterns DARVO/contempt/criticism by actor: light spread.
+    if let Some(arr) = x.get("patterns").and_then(|v| v.as_array()) {
+        for p in arr {
+            let kind = p.get("kind").and_then(|v| v.as_str()).unwrap_or("");
+            let w = match kind {
+                "DARVO" | "contempt" | "gaslighting" => 1.2,
+                "criticism" | "defensiveness" | "stonewalling" => 0.6,
+                _ => 0.2,
+            };
+            if let Some(a) = p.get("actor_id").and_then(|v| v.as_str()) {
+                for other in &actors {
+                    if other != a { bump(a, other, w); }
+                }
+            }
+        }
+    }
+
+    let pairs: Vec<serde_json::Value> = m.into_iter().map(|((a, b), w)| serde_json::json!({
+        "a": a,
+        "b": b,
+        "a_label": actor_label.get(&a).cloned().unwrap_or(a.clone()),
+        "b_label": actor_label.get(&b).cloned().unwrap_or(b.clone()),
+        "weight": (w * 100.0).round() / 100.0,
+        "heat": ((w * 30.0).min(100.0)).round() as i64,
+    })).collect();
+
+    serde_json::json!({ "actors": actors, "pairs": pairs })
+}
+
 #[derive(Serialize)]
 struct PerceiveResponse {
     session_id: Option<Uuid>,
@@ -168,6 +258,8 @@ struct PerceiveResponse {
     input_tokens: u32,
     output_tokens: u32,
     persisted: bool,
+    pre_canonical: PreCanonical,
+    friction_matrix: serde_json::Value,
     extraction: serde_json::Value,
 }
 
@@ -180,11 +272,15 @@ async fn perceive(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("schema parse: {e}")))?;
 
     let source_text = body.text.clone();
+    let pc = pretransform::transform(&source_text);
+    let envelope = pretransform::render_envelope(&pc);
+    let user_payload = if envelope.is_empty() { source_text.clone() } else { format!("{envelope}\n{source_text}") };
+
     let req = ExtractRequest {
         system: PERCEIVE_SYSTEM.into(),
-        user: body.text,
+        user: user_payload,
         schema: Some(schema),
-        model: body.model,
+        model: Some(resolve_model(body.model.as_deref())),
         temperature: Some(0.0),
         max_output_tokens: Some(16384),
     };
@@ -194,6 +290,7 @@ async fn perceive(
 
     let elapsed = started.elapsed();
     let x = &resp.value;
+    let fmatrix = friction_matrix(x);
     let count = |k: &str| x.get(k).and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0) as i32;
     let friction = x.get("friction_score").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
     let summary = x.get("summary").and_then(|v| v.as_str()).unwrap_or("").to_string();
@@ -231,6 +328,8 @@ async fn perceive(
         input_tokens: resp.input_tokens,
         output_tokens: resp.output_tokens,
         persisted,
+        pre_canonical: pc,
+        friction_matrix: fmatrix,
         extraction: resp.value,
     }))
 }
@@ -263,6 +362,18 @@ async fn perceive_stream(
             "elapsed_ms": t_stage.elapsed().as_millis(),
         }));
 
+        t_stage = Instant::now();
+        let pc = pretransform::transform(&source_text);
+        let envelope = pretransform::render_envelope(&pc);
+        emit(&tx, "stage", serde_json::json!({
+            "stage": "pre_canonical",
+            "msg": "deterministic envelope built",
+            "format": format!("{:?}", pc.format_hint),
+            "turns": pc.n_turns,
+            "speakers": pc.speakers,
+            "elapsed_ms": t_stage.elapsed().as_millis(),
+        }));
+
         if source_text.trim().is_empty() {
             emit(&tx, "error", serde_json::json!({"error": "empty input"}));
             return;
@@ -283,12 +394,17 @@ async fn perceive_stream(
             "backend": s.backend_name,
         }));
 
-        // Build request
+        // Build request — prepend deterministic envelope.
+        let user_payload = if envelope.is_empty() {
+            source_text.clone()
+        } else {
+            format!("{envelope}\n{}", source_text)
+        };
         let req = ExtractRequest {
             system: PERCEIVE_SYSTEM.into(),
-            user: source_text.clone(),
+            user: user_payload,
             schema: Some(schema),
-            model: body.model.clone(),
+            model: Some(resolve_model(body.model.as_deref())),
             temperature: Some(0.0),
             max_output_tokens: Some(16384),
         };
@@ -381,6 +497,7 @@ async fn perceive_stream(
             }));
         }
 
+        let fmatrix = friction_matrix(&resp.value);
         emit(&tx, "result", serde_json::json!({
             "session_id": session_id,
             "elapsed_ms": overall.elapsed().as_millis(),
@@ -388,6 +505,8 @@ async fn perceive_stream(
             "input_tokens": resp.input_tokens,
             "output_tokens": resp.output_tokens,
             "persisted": persisted,
+            "pre_canonical": pc,
+            "friction_matrix": fmatrix,
             "extraction": resp.value,
         }));
     });
