@@ -96,7 +96,7 @@ testcontainers-modules = { version = "0.11", features = ["postgres"] }
 
 # Internal
 aco-core = { path = "crates/aco-core" }
-aco-llm = { path = "crates/aco-llm" }
+aco-llm = { path = "crates/aco-llm", default-features = false }
 aco-embed = { path = "crates/aco-embed" }
 aco-storage = { path = "crates/aco-storage" }
 aco-perceive = { path = "crates/aco-perceive" }

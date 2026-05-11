@@ -1,0 +1,15 @@
+target/
+.git/
+.github/
+infra/
+docs/
+corpora/
+PROJECT_LEDGER/
+*.md
+.env
+.env.*
+.idea/
+.vscode/
+.DS_Store
+node_modules/
+.terraform*

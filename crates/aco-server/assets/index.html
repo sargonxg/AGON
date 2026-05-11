@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AGON — Conflict Perception Engine</title>
+<link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">AGON</div>
+    <div class="tagline">Conflict perception engine · <span id="backend">…</span></div>
+  </div>
+  <nav><a href="https://github.com/sargonxg/AGON" target="_blank" rel="noopener">github</a><span class="dot">·</span><a href="/readyz">status</a></nav>
+</header>
+
+<main>
+  <section class="intake">
+    <h1>Drop conflict text. AGON extracts the world model.</h1>
+    <p class="lede">Messages, transcripts, complaints, depositions, journals — AGON perceives actors, claims, events, commitments, contradictions, patterns. Every primitive cites its verbatim source span.</p>
+
+    <textarea id="text" placeholder="Paste 2–10 paragraphs of conflict text here. Example: a message thread, a board minutes excerpt, a deposition snippet, a co-parenting WhatsApp transcript…"></textarea>
+
+    <div class="controls">
+      <button id="sample">Load sample</button>
+      <button id="run" class="primary">Perceive →</button>
+      <span id="status" class="status"></span>
+    </div>
+  </section>
+
+  <section id="results" class="results hidden">
+    <div class="cards">
+      <div class="card"><h3>Friction</h3><div id="friction" class="big">—</div></div>
+      <div class="card"><h3>Actors</h3><div id="n-actors" class="big">—</div></div>
+      <div class="card"><h3>Claims</h3><div id="n-claims" class="big">—</div></div>
+      <div class="card"><h3>Events</h3><div id="n-events" class="big">—</div></div>
+      <div class="card"><h3>Patterns</h3><div id="n-patterns" class="big">—</div></div>
+      <div class="card"><h3>Contradictions</h3><div id="n-contras" class="big">—</div></div>
+    </div>
+
+    <div class="summary">
+      <h3>Summary</h3>
+      <p id="summary"></p>
+    </div>
+
+    <div class="grid">
+      <div class="panel">
+        <h3>Actors</h3>
+        <div id="actors"></div>
+      </div>
+      <div class="panel">
+        <h3>Claims</h3>
+        <div id="claims"></div>
+      </div>
+      <div class="panel">
+        <h3>Events</h3>
+        <div id="events"></div>
+      </div>
+      <div class="panel">
+        <h3>Commitments</h3>
+        <div id="commitments"></div>
+      </div>
+      <div class="panel">
+        <h3>Interests (inferred)</h3>
+        <div id="interests"></div>
+      </div>
+      <div class="panel">
+        <h3>Patterns</h3>
+        <div id="patterns"></div>
+      </div>
+      <div class="panel wide">
+        <h3>Contradictions</h3>
+        <div id="contras"></div>
+      </div>
+    </div>
+
+    <details class="raw">
+      <summary>Raw JSON</summary>
+      <pre id="raw"></pre>
+    </details>
+  </section>
+</main>
+
+<footer>
+  AGON v0.1 · perception is sovereign · <a href="https://www.tacitus.me" target="_blank" rel="noopener">TACITUS</a>
+</footer>
+
+<script src="/assets/app.js"></script>
+</body>
+</html>

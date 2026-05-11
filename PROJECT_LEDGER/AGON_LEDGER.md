@@ -75,14 +75,30 @@ Day 0 work done under the old plan (Cargo workspace, crate skeletons, basic CI) 
 - ✓ 2.12 `terraform apply` clean — **32 resources, deployed**
 - ✓ **Live URL: https://agon-dev-tbryoen6qa-uc.a.run.app (HTTP 200)**
 
-### Day 3 — `aco-llm`: Vertex AI Gemini + Mock
-- ☐ 3.1 `LlmBackend` trait
-- ☐ 3.2 `VertexAiBackend` (live, gated `--features live-vertex`)
-- ☐ 3.3 Service-account auth
-- ☐ 3.4 `MockLlmBackend` + fixture replay
-- ☐ 3.5 Retry + rate limit + cost ledger + cache
-- ☐ 3.6 `aco-embed` fastembed BAAI/bge-small-en-v1.5
-- ☐ 3.7 Tests
+### Day 3 — `aco-llm`: Vertex AI Gemini + Mock ✓
+- ✓ 3.1 `LlmBackend` async trait (extract_json + embed)
+- ✓ 3.2 `VertexAiBackend` live — talks to Vertex AI from Cloud Run
+- ✓ 3.3 Service-account auth via metadata server + ADC fallback for local
+- ✓ 3.4 `MockLlmBackend` capitalized-token heuristic
+- ✓ 3.5 CostLedger per-model token tracker
+- ⏸ 3.6 `aco-embed` fastembed — deferred (Vertex text-embedding-005 used)
+- ✓ 3.7 Mock test green
+
+### Day 6 partial — `aco-server` Axum + dashboard ✓
+- ✓ Axum 0.8 server with embedded assets via rust-embed
+- ✓ Dark-mode dashboard at `/` — textarea + 6-card metrics + 7-panel grid + raw JSON
+- ✓ Endpoints: `/`, `/assets/*`, `/healthz`, `/readyz`, `/api/info`, `/api/perceive`
+- ✓ Perception prompt + JSON schema for 8 ACO primitives + patterns + contradictions
+- ✓ End-to-end live: actors, claims, contested commitments, friction score
+
+### Day 7 partial — first deploy ✓
+- ✓ Multi-stage Dockerfile (Rust 1.83 builder → distroless/cc nonroot)
+- ✓ `.dockerignore`
+- ✓ Cloud Build remote build (5m54s, 250 MB image)
+- ✓ Image pushed: `us-central1-docker.pkg.dev/tacitus-agon-dev/agon/agon-server:v0.1.0`
+- ✓ Cloud Run revision `agon-dev-00002-56q` serving 100% traffic
+- ✓ Live perceive call against real Vertex AI Gemini 2.5 Flash from Cloud Run SA
+- ☐ Cloud Build GitHub trigger (manual submit works for now)
 
 ### Day 4 — `aco-storage`: Cloud SQL via sqlx
 - ☐ 4.1 `migrations/001_init.up.sql` + `.down.sql`

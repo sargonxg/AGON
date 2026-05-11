@@ -7,13 +7,16 @@ license.workspace = true
 repository.workspace = true
 description = "Axum HTTP/WS dashboard server."
 
+[[bin]]
+name = "agon-server"
+path = "src/bin/agon-server.rs"
+
 [dependencies]
 aco-core = { workspace = true }
-aco-storage = { workspace = true }
-aco-infer = { workspace = true }
-aco-score = { workspace = true }
+aco-llm = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -21,5 +24,4 @@ axum = { workspace = true }
 tower = { workspace = true }
 tower-http = { workspace = true }
 rust-embed = { workspace = true }
-jsonwebtoken = { workspace = true }
-tera = { workspace = true }
+async-trait = { workspace = true }

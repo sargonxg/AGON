@@ -1,8 +1,7 @@
-//! `aco-server` — Axum dashboard backend.
+//! `aco-server` — Axum HTTP server + embedded dashboard for AGON.
 #![forbid(unsafe_code)]
 
-use tracing::trace;
+pub mod app;
+pub mod prompts;
 
-pub fn init() {
-    trace!(crate_name = "aco-server", "loaded");
-}
+pub use app::{build_app, AppState};
