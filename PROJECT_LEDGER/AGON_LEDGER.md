@@ -23,15 +23,19 @@ Day 0 work done under the old plan (Cargo workspace, crate skeletons, basic CI) 
 
 | # | Task | Status | Notes |
 |---|---|---|---|
-| 0.1 | Create dev + prod GCP projects | ☐ | [You] interactive, see `SETUP.md` §1.1 |
-| 0.2 | Attach billing accounts | ☐ | [You] |
-| 0.3 | Enable 17 APIs | ☐ | `make bootstrap` |
-| 0.4 | Quota uplift for Vertex AI Gemini | ☐ | [You] console request |
-| 0.5 | `gcloud auth login` + ADC | ☐ | [You] browser |
-| 0.6 | Repo init (already cloned) | ✓ | local dir + remote on GitHub (no push yet) |
+| 0.1 | Create dev GCP project | ✓ | `tacitus-agon-dev` (#1086904791123) under org 709406008078 |
+| 0.2 | Attach billing | ✓ | startup credit `011452-1C91EA-384484` |
+| 0.3 | Enable 17 APIs | ✓ | via `make bootstrap` |
+| 0.4 | Quota uplift for Vertex AI Gemini | ☐ | [You] console request when ready |
+| 0.5 | `gcloud auth login` + ADC | ✓ | giulio@tacitus.me + quota-project=tacitus-agon-dev |
+| 0.6 | Repo init | ✓ | pushed to github.com/sargonxg/AGON |
 | 0.7 | Makefile + bootstrap.sh + connect-github.sh | ✓ | scaffolded 2026-05-10 |
 | 0.8 | `.env.example` for GCP-native vars | ✓ | replaced v2 file |
-| 0.9 | First push to `sargonxg/AGON` | ☐ | pending: `git remote add origin` + push |
+| 0.9 | First push to `sargonxg/AGON` | ✓ | `main` branch |
+| 0.10 | TF state bucket | ✓ | `tacitus-agon-dev-terraform-state` |
+| 0.11 | Cloud Build SA IAM | ✓ | 6 roles granted |
+| 0.12 | Cloud Build ↔ GitHub connection | ☐ | [You] Console: cloud-build/repositories/2nd-gen |
+| 0.13 | Create prod project | ⏸ | deferred to Day 19 |
 
 ### Legacy Day 0 (v2) — keep
 - ✓ Cargo workspace init
