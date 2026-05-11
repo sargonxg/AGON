@@ -44,6 +44,18 @@
       <p id="summary"></p>
     </div>
 
+    <div class="panel wide">
+      <h3>Graph</h3>
+      <svg id="graph" viewBox="0 0 1200 480" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="legend">
+        <span class="dot actor"></span>actor
+        <span class="dot claim"></span>claim
+        <span class="dot event"></span>event
+        <span class="dot commitment"></span>commitment
+        <span class="dot interest"></span>interest
+      </div>
+    </div>
+
     <div class="grid">
       <div class="panel">
         <h3>Actors</h3>
@@ -79,6 +91,14 @@
       <summary>Raw JSON</summary>
       <pre id="raw"></pre>
     </details>
+  </section>
+
+  <section class="history-section">
+    <div class="hh">
+      <h3>Recent sessions</h3>
+      <button id="refresh-history" class="small">refresh</button>
+    </div>
+    <div id="history" class="history"><div class="meta">none yet</div></div>
   </section>
 </main>
 

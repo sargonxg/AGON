@@ -100,14 +100,20 @@ Day 0 work done under the old plan (Cargo workspace, crate skeletons, basic CI) 
 - ✓ Live perceive call against real Vertex AI Gemini 2.5 Flash from Cloud Run SA
 - ☐ Cloud Build GitHub trigger (manual submit works for now)
 
-### Day 4 — `aco-storage`: Cloud SQL via sqlx
-- ☐ 4.1 `migrations/001_init.up.sql` + `.down.sql`
-- ☐ 4.2 Pool + Secret Manager password
-- ☐ 4.3 Repos per primitive
-- ☐ 4.4 Provenance + spans + edges + audit
-- ☐ 4.5 `petgraph` mirror + hydration
-- ☐ 4.6 `LISTEN`/`NOTIFY`
-- ☐ 4.7 Tests
+### Day 4 — `aco-storage`: Cloud SQL via sqlx ✓ (minimal v0.1)
+- ✓ 4.1 `migrations/20260511000001_init.sql` (sessions table + 2 indices)
+- ✓ 4.2 PgPool with secret-manager password from env
+- ✓ 4.3 Session insert + recent_sessions(50) + get_session(uuid)
+- ⏸ 4.4 Per-primitive repos with provenance/spans/edges (v0.2)
+- ⏸ 4.5 In-memory petgraph mirror (v0.2)
+- ⏸ 4.6 LISTEN/NOTIFY (v0.2)
+- ⏸ 4.7 testcontainers integration tests (v0.2)
+- ✓ Wired into aco-server: persists every perception, `GET /api/sessions` history
+
+### Day 6 partial — additional dashboard features ✓
+- ✓ SVG force-directed graph (actors/claims/events/commitments/interests + CONTRADICTS edges)
+- ✓ History panel (clickable session cards loading saved extractions)
+- ✓ Vertex AI truncation fix: 16k max_output_tokens + JSON salvage for partial responses
 
 ### Day 5 — `aco-perceive` + `aco-fuse`
 ### Day 6 — `aco-infer` + `aco-score` (first pass) + `aco-server`

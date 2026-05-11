@@ -114,10 +114,41 @@ button:disabled { opacity: 0.6; cursor: wait; }
 .tag.med { background: rgba(250,204,21,0.15); color: var(--warn); }
 .tag.low { background: rgba(74,222,128,0.15); color: var(--good); }
 
+#graph { width: 100%; height: 480px; display: block; background: var(--panel-2); border-radius: 8px; }
+#graph .link { stroke: var(--line); stroke-opacity: 0.6; }
+#graph .link.CONTRADICTS { stroke: var(--bad); stroke-opacity: 0.9; stroke-dasharray: 4 3; }
+#graph .link.COMMITS_TO { stroke: var(--accent); stroke-opacity: 0.8; }
+#graph .node-actor { fill: var(--accent); }
+#graph .node-claim { fill: var(--accent-2); }
+#graph .node-event { fill: #6ea8ff; }
+#graph .node-commitment { fill: #c084fc; }
+#graph .node-interest { fill: var(--good); }
+#graph text { font: 11px ui-sans-serif; fill: var(--text); pointer-events: none; }
+.legend { display: flex; gap: 12px; margin-top: 8px; color: var(--muted); font-size: 12px; align-items: center; }
+.legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+.legend .dot.actor { background: var(--accent); }
+.legend .dot.claim { background: var(--accent-2); }
+.legend .dot.event { background: #6ea8ff; }
+.legend .dot.commitment { background: #c084fc; }
+.legend .dot.interest { background: var(--good); }
+
 .raw { margin-top: 22px; }
 .raw summary { color: var(--muted); cursor: pointer; padding: 8px 0; }
 .raw pre { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
   padding: 14px; font: 12px/1.55 ui-monospace, monospace; overflow: auto; max-height: 480px; color: var(--muted); }
+
+.history-section { margin-top: 36px; }
+.hh { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.hh h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 500; }
+button.small { padding: 4px 10px; font-size: 12px; }
+.history { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.h-card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; cursor: pointer; transition: border-color .15s; }
+.h-card:hover { border-color: var(--accent); }
+.h-card .top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.h-card .score { font: 700 18px ui-monospace, monospace; }
+.h-card .ts { color: var(--muted); font-size: 11px; }
+.h-card .sum { font-size: 13px; color: var(--text); }
+.h-card .counts { color: var(--muted); font-size: 11px; margin-top: 6px; }
 
 footer {
   border-top: 1px solid var(--line); padding: 20px 32px; color: var(--muted); font-size: 13px;

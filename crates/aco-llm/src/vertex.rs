@@ -70,6 +70,8 @@ struct GenerateResponse {
 #[derive(Deserialize)]
 struct Candidate {
     content: Option<CandidateContent>,
+    #[serde(rename = "finishReason", default)]
+    finish_reason: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -196,16 +198,36 @@ impl LlmBackend for VertexAiBackend {
         }
 
         let gen: GenerateResponse = resp.json().await.map_err(|e| LlmError::Decode(e.to_string()))?;
-        let text = gen.candidates
+        let cand = gen.candidates
             .and_then(|c| c.into_iter().next())
-            .and_then(|c| c.content)
+            .ok_or_else(|| LlmError::Decode("no candidates".into()))?;
+        let finish = cand.finish_reason.clone().unwrap_or_default();
+        let text = cand.content
             .and_then(|c| c.parts)
             .and_then(|p| p.into_iter().next())
             .and_then(|p| p.text)
             .ok_or_else(|| LlmError::Decode("empty candidate".into()))?;
 
-        let value: Value = serde_json::from_str(&text)
-            .map_err(|e| LlmError::Schema(format!("not valid JSON: {e}; got: {}", &text.chars().take(200).collect::<String>())))?;
+        let value: Value = match serde_json::from_str(&text) {
+            Ok(v) => v,
+            Err(e) => {
+                if finish == "MAX_TOKENS" {
+                    return Err(LlmError::Schema(format!(
+                        "model hit output token cap ({}). Increase max_output_tokens or shorten input.",
+                        req.max_output_tokens.unwrap_or(2048)
+                    )));
+                }
+                // Last-resort: try to recover by salvaging up to last balanced brace.
+                let salvaged = salvage_json(&text);
+                match salvaged.and_then(|s| serde_json::from_str(&s).ok()) {
+                    Some(v) => v,
+                    None => return Err(LlmError::Schema(format!(
+                        "not valid JSON: {e}; finish={finish}; preview: {}",
+                        text.chars().take(300).collect::<String>()
+                    ))),
+                }
+            }
+        };
 
         let usage = gen.usage_metadata.unwrap_or_default();
         self.cost.record(&model, usage.prompt_token_count, usage.candidates_token_count);
@@ -250,5 +272,55 @@ impl LlmBackend for VertexAiBackend {
 
     fn name(&self) -> &'static str {
         "vertex-ai"
+    }
+}
+
+/// Best-effort recovery of truncated JSON by closing open structures
+/// up to the last complete value boundary. Conservative — returns None
+/// if it can't make sense of the input.
+fn salvage_json(s: &str) -> Option<String> {
+    // Trim trailing partial-token noise: walk back to last `,` or value end at depth.
+    let bytes = s.as_bytes();
+    let mut stack: Vec<u8> = Vec::new();
+    let mut in_string = false;
+    let mut escape = false;
+    let mut last_complete = 0usize;
+    for (i, &b) in bytes.iter().enumerate() {
+        if escape { escape = false; continue; }
+        if in_string {
+            match b {
+                b'\\' => escape = true,
+                b'"' => in_string = false,
+                _ => {}
+            }
+            continue;
+        }
+        match b {
+            b'"' => in_string = true,
+            b'{' => stack.push(b'}'),
+            b'[' => stack.push(b']'),
+            b'}' | b']' => { stack.pop(); if stack.is_empty() { last_complete = i + 1; } }
+            b',' if stack.len() == 1 => last_complete = i,
+            _ => {}
+        }
+    }
+    if in_string || stack.is_empty() { return None; }
+    let trimmed = &s[..last_complete];
+    // Strip trailing comma if present.
+    let trimmed = trimmed.trim_end_matches(|c: char| c.is_whitespace() || c == ',');
+    let closes: String = stack.iter().rev().map(|&b| b as char).collect();
+    Some(format!("{trimmed}{closes}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn salvages_truncated_array() {
+        let truncated = r#"{"actors":[{"id":"a1","label":"Sam"},{"id":"a2","label":"Al"#;
+        let fixed = salvage_json(truncated).unwrap();
+        let v: Value = serde_json::from_str(&fixed).unwrap();
+        assert_eq!(v["actors"].as_array().unwrap().len(), 1);
     }
 }

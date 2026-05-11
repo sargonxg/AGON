@@ -17,8 +17,6 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 chrono = { workspace = true }
 sqlx = { workspace = true }
-pgvector = { workspace = true }
-petgraph = { workspace = true }
 uuid = { workspace = true }
 async-trait = { workspace = true }
 secrecy = { workspace = true }

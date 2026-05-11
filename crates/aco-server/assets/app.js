@@ -13,9 +13,46 @@ Alex (Thu 09:30): Whatever. Send what you have, I'll finish it tonight. But we n
   try {
     const r = await fetch('/api/info');
     const info = await r.json();
-    $('backend').textContent = info.backend + ' · ' + info.project;
+    $('backend').textContent = info.backend + ' · ' + info.project + (info.db ? ' · 💾' : ' · stateless');
   } catch (_) {}
+  loadHistory();
 })();
+
+document.getElementById('refresh-history')?.addEventListener('click', loadHistory);
+
+async function loadHistory() {
+  try {
+    const r = await fetch('/api/sessions');
+    const data = await r.json();
+    const el = $('history');
+    if (!data.db) { el.innerHTML = '<div class="meta">db not configured (stateless)</div>'; return; }
+    const list = data.sessions || [];
+    if (!list.length) { el.innerHTML = '<div class="meta">no sessions yet — run one above</div>'; return; }
+    el.innerHTML = list.map(s => `
+      <div class="h-card" data-id="${s.id}">
+        <div class="top">
+          <span class="score ${s.friction_score >= 65 ? 'heat-high' : s.friction_score >= 35 ? 'heat-mid' : 'heat-low'}">${s.friction_score}</span>
+          <span class="ts">${new Date(s.created_at).toLocaleString()}</span>
+        </div>
+        <div class="sum">${esc(s.summary || '(no summary)').slice(0, 140)}${(s.summary || '').length > 140 ? '…' : ''}</div>
+        <div class="counts">${s.n_actors}a · ${s.n_claims}c · ${s.n_events}e · ${s.n_patterns}p · ${s.n_contradictions}x · ${s.input_tokens}/${s.output_tokens}tok · ${(s.elapsed_ms / 1000).toFixed(1)}s</div>
+      </div>
+    `).join('');
+    el.querySelectorAll('.h-card').forEach(card => {
+      card.addEventListener('click', async () => {
+        const id = card.dataset.id;
+        const r = await fetch('/api/sessions/' + id);
+        if (!r.ok) return;
+        const sess = await r.json();
+        $('text').value = sess.source_text;
+        render(sess.extraction);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+  } catch (e) {
+    console.error(e);
+  }
+}
 
 $('sample').addEventListener('click', () => { $('text').value = SAMPLE; });
 
@@ -38,8 +75,9 @@ $('run').addEventListener('click', async () => {
     }
     const data = await r.json();
     const dt = (performance.now() - t0) / 1000;
-    setStatus(`${data.extraction.actors?.length || 0} actors · ${data.input_tokens}/${data.output_tokens} tokens · ${dt.toFixed(1)}s · ${data.model}`);
+    setStatus(`${data.extraction.actors?.length || 0} actors · ${data.input_tokens}/${data.output_tokens} tokens · ${dt.toFixed(1)}s · ${data.model}${data.persisted ? ' · 💾 saved' : ''}`);
     render(data.extraction);
+    loadHistory();
   } catch (e) {
     setStatus('error: ' + e.message, true);
   } finally {
@@ -131,7 +169,100 @@ function render(x) {
   }).join('') || '<div class="meta">none</div>';
 
   $('raw').textContent = JSON.stringify(x, null, 2);
+  drawGraph(x);
 }
+
+// Simple force-directed graph. No CDN.
+function drawGraph(x) {
+  const svg = document.getElementById('graph');
+  svg.innerHTML = '';
+  const W = 1200, H = 480;
+  const nodes = [];
+  const links = [];
+
+  (x.actors || []).forEach(a => nodes.push({ id: a.id, label: a.label || a.id, kind: 'actor' }));
+  (x.claims || []).forEach(c => {
+    nodes.push({ id: c.id, label: trunc(c.text, 28), kind: 'claim' });
+    if (c.actor_id) links.push({ s: c.actor_id, t: c.id, type: 'ASSERTED' });
+  });
+  (x.events || []).forEach(e => nodes.push({ id: e.id, label: trunc(e.label, 28), kind: 'event' }));
+  (x.commitments || []).forEach(c => {
+    nodes.push({ id: c.id, label: trunc(c.subject, 28), kind: 'commitment' });
+    if (c.by_actor) links.push({ s: c.by_actor, t: c.id, type: 'COMMITS_TO' });
+  });
+  (x.interests || []).forEach((i, idx) => {
+    const id = 'int_' + idx;
+    nodes.push({ id, label: trunc(i.interest, 28), kind: 'interest' });
+    if (i.actor_id) links.push({ s: i.actor_id, t: id, type: 'HOLDS_INTEREST' });
+  });
+  (x.contradictions || []).forEach(c => links.push({ s: c.claim_a, t: c.claim_b, type: 'CONTRADICTS' }));
+
+  if (!nodes.length) return;
+
+  // Init positions on a circle
+  const cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.4;
+  nodes.forEach((n, i) => {
+    const a = (i / nodes.length) * Math.PI * 2;
+    n.x = cx + Math.cos(a) * R;
+    n.y = cy + Math.sin(a) * R;
+    n.vx = 0; n.vy = 0;
+  });
+  const byId = Object.fromEntries(nodes.map(n => [n.id, n]));
+  const linksResolved = links.filter(l => byId[l.s] && byId[l.t]);
+
+  // Run physics: charge repulsion + spring links + center gravity.
+  for (let step = 0; step < 220; step++) {
+    for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
+      const a = nodes[i], b = nodes[j];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const d2 = dx * dx + dy * dy + 1;
+      const f = 5000 / d2;
+      const fx = (dx / Math.sqrt(d2)) * f;
+      const fy = (dy / Math.sqrt(d2)) * f;
+      a.vx -= fx; a.vy -= fy; b.vx += fx; b.vy += fy;
+    }
+    for (const l of linksResolved) {
+      const a = byId[l.s], b = byId[l.t];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const d = Math.sqrt(dx * dx + dy * dy) || 1;
+      const f = (d - 110) * 0.04;
+      const fx = (dx / d) * f, fy = (dy / d) * f;
+      a.vx += fx; a.vy += fy; b.vx -= fx; b.vy -= fy;
+    }
+    for (const n of nodes) {
+      n.vx += (cx - n.x) * 0.005;
+      n.vy += (cy - n.y) * 0.005;
+      n.x += n.vx * 0.5; n.y += n.vy * 0.5;
+      n.vx *= 0.7; n.vy *= 0.7;
+      n.x = Math.max(40, Math.min(W - 40, n.x));
+      n.y = Math.max(30, Math.min(H - 30, n.y));
+    }
+  }
+
+  // Draw links
+  for (const l of linksResolved) {
+    const a = byId[l.s], b = byId[l.t];
+    const line = svgEl('line', { x1: a.x, y1: a.y, x2: b.x, y2: b.y });
+    line.setAttribute('class', 'link ' + l.type);
+    svg.appendChild(line);
+  }
+  // Draw nodes
+  for (const n of nodes) {
+    const r = n.kind === 'actor' ? 10 : 6;
+    const c = svgEl('circle', { cx: n.x, cy: n.y, r });
+    c.setAttribute('class', 'node-' + n.kind);
+    svg.appendChild(c);
+    const t = svgEl('text', { x: n.x + r + 3, y: n.y + 3 });
+    t.textContent = n.label;
+    svg.appendChild(t);
+  }
+}
+function svgEl(name, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', name);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+function trunc(s, n) { s = String(s || ''); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
 
 function statusTag(s) {
   switch ((s || '').toLowerCase()) {

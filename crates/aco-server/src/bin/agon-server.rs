@@ -12,7 +12,7 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let port: u16 = std::env::var("PORT").ok().and_then(|s| s.parse().ok()).unwrap_or(8080);
-    let state = Arc::new(AppState::from_env());
+    let state = Arc::new(AppState::from_env().await);
     let app = build_app(state);
 
     let listener = tokio::net::TcpListener::bind(("0.0.0.0", port)).await?;
