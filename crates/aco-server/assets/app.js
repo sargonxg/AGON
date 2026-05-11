@@ -61,29 +61,105 @@ $('run').addEventListener('click', async () => {
   if (!text) { setStatus('paste some text first', true); return; }
   const btn = $('run');
   btn.disabled = true;
-  setStatus('perceiving…');
+  setStatus('streaming…');
+  resetPipeline();
   const t0 = performance.now();
   try {
-    const r = await fetch('/api/perceive', {
+    const res = await fetch('/api/perceive/stream', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ text })
     });
-    if (!r.ok) {
-      const err = await r.text();
-      throw new Error(err || r.statusText);
+    if (!res.ok) { throw new Error(await res.text() || res.statusText); }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    let done = false;
+    while (!done) {
+      const { value, done: d } = await reader.read();
+      done = d;
+      if (value) buf += decoder.decode(value, { stream: true });
+      let i;
+      while ((i = buf.indexOf('\n\n')) >= 0) {
+        const frame = buf.slice(0, i); buf = buf.slice(i + 2);
+        handleSseFrame(frame);
+        $('pipe-total').textContent = ((performance.now() - t0) / 1000).toFixed(2) + ' s';
+      }
     }
-    const data = await r.json();
-    const dt = (performance.now() - t0) / 1000;
-    setStatus(`${data.extraction.actors?.length || 0} actors · ${data.input_tokens}/${data.output_tokens} tokens · ${dt.toFixed(1)}s · ${data.model}${data.persisted ? ' · 💾 saved' : ''}`);
-    render(data.extraction);
-    loadHistory();
   } catch (e) {
     setStatus('error: ' + e.message, true);
+    addStep('error', e.message, 'error');
   } finally {
     btn.disabled = false;
   }
 });
+
+function resetPipeline() {
+  $('pipeline').classList.remove('hidden');
+  $('pipe-steps').innerHTML = '';
+  $('pipe-total').textContent = '0 ms';
+}
+
+function handleSseFrame(frame) {
+  let evt = 'message', data = '';
+  for (const line of frame.split('\n')) {
+    if (line.startsWith('event:')) evt = line.slice(6).trim();
+    else if (line.startsWith('data:')) data += line.slice(5).trim();
+  }
+  if (!data) return;
+  let payload;
+  try { payload = JSON.parse(data); } catch (_) { return; }
+
+  if (evt === 'stage') {
+    markPriorDone();
+    const meta = formatMeta(payload);
+    addStep(payload.stage, payload.msg || '', 'active', meta, payload.elapsed_ms);
+  } else if (evt === 'result') {
+    markPriorDone();
+    addStep('result', 'world model built', 'done', '', payload.elapsed_ms);
+    setStatus(`${payload.extraction.actors?.length || 0} actors · ${payload.input_tokens}/${payload.output_tokens} tokens · ${(payload.elapsed_ms/1000).toFixed(1)}s · ${payload.model}${payload.persisted ? ' · 💾' : ''}`);
+    render(payload.extraction);
+    loadHistory();
+  } else if (evt === 'error') {
+    markPriorDone();
+    addStep('error', payload.error, 'error');
+    setStatus('error: ' + payload.error, true);
+  } else if (evt === 'warn') {
+    addStep('warn', payload.warn, 'error');
+  }
+}
+
+function markPriorDone() {
+  const last = $('pipe-steps').lastElementChild;
+  if (last && last.classList.contains('active')) {
+    last.classList.remove('active');
+    last.classList.add('done');
+  }
+}
+
+function addStep(name, msg, cls, meta, ms) {
+  const li = document.createElement('li');
+  if (cls) li.classList.add(cls);
+  const span = (c, t) => `<span class="${c}">${esc(t)}</span>`;
+  li.innerHTML =
+    span('name', name) +
+    `<span class="meta">${esc(msg || '')}${meta ? ' · ' + meta : ''}</span>` +
+    `<span class="ms">${ms != null ? ms + ' ms' : ''}</span>`;
+  $('pipe-steps').appendChild(li);
+}
+
+function formatMeta(p) {
+  const bits = [];
+  if (p.chars != null) bits.push(`${p.chars} chars · ${p.lines} lines`);
+  if (p.input_tokens != null) bits.push(`${p.input_tokens} in / ${p.output_tokens} out`);
+  if (p.tokens_per_sec != null && p.tokens_per_sec > 0) bits.push(`${p.tokens_per_sec.toFixed(0)} tok/s`);
+  if (p.model) bits.push(p.model);
+  if (p.backend) bits.push(p.backend);
+  if (p.friction_score != null) bits.push(`friction ${p.friction_score}`);
+  if (p.n_actors != null) bits.push(`${p.n_actors}a/${p.n_claims}c/${p.n_events}e/${p.n_patterns}p/${p.n_contradictions}x`);
+  if (p.session_id) bits.push(`id ${String(p.session_id).slice(0,8)}…`);
+  return bits.join(' · ');
+}
 
 function setStatus(msg, err) {
   const el = $('status');

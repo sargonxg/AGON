@@ -66,6 +66,28 @@ button:disabled { opacity: 0.6; cursor: wait; }
 .status { color: var(--muted); font-size: 13px; margin-left: 8px; }
 .status.err { color: var(--bad); }
 
+.pipeline {
+  margin-top: 18px; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 10px; padding: 14px 16px;
+}
+.pipeline.hidden { display: none; }
+.pipeline-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.pipeline-header h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 500; }
+.pipe-total { font: 600 13px ui-monospace, monospace; color: var(--accent-2); }
+#pipe-steps { list-style: none; padding: 0; }
+#pipe-steps li {
+  padding: 8px 10px; border-left: 2px solid var(--line); margin-bottom: 4px;
+  font: 13px ui-monospace, monospace; color: var(--muted);
+  display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center;
+}
+#pipe-steps li.active { border-left-color: var(--accent); color: var(--text); background: rgba(255,106,61,0.04); animation: pulse 1.2s infinite; }
+#pipe-steps li.done   { border-left-color: var(--good); color: var(--text); }
+#pipe-steps li.error  { border-left-color: var(--bad);  color: var(--bad); }
+#pipe-steps li .name { font-weight: 600; color: inherit; }
+#pipe-steps li .meta { color: var(--muted); font-size: 12px; }
+#pipe-steps li .ms   { color: var(--accent-2); font-size: 12px; font-weight: 600; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+
 .results { margin-top: 32px; }
 .results.hidden { display: none; }
 

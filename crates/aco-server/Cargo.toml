@@ -28,3 +28,5 @@ rust-embed = { workspace = true }
 async-trait = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
+futures = { workspace = true }
+tokio-stream = "0.1"

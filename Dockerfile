@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy workspace + only the crates the binary needs (minimal closure).
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 COPY crates ./crates
+COPY migrations ./migrations
 
 # Cache deps then build agon-server release.
 RUN cargo build --release --bin agon-server \
