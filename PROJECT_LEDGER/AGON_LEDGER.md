@@ -1,112 +1,120 @@
 # AGON Build Ledger
 
-**MVP target:** Sprint 1 (Days 1-7) — first end-to-end pipeline on workplace dispute corpus.
+**MVP target:** v0.1.0 — three-sprint GCP-native build per `BUILDPLAN.md`.
 **Started:** 2026-05-10
-**Mode:** Full autopilot to MVP done.
+**Spec version:** v3 (GCP-native; supersedes local-dev v2 plan)
+**GCP project (dev):** tacitus-agon-dev (to be created)
+**GitHub:** github.com/sargonxg/AGON (public, exists, no commits yet on remote)
+**Maintainer:** Giulio Catanzariti <giuliocatanzariti@gmail.com>
 
-Legend: ☐ todo · ◐ in-progress · ✓ done · ✗ blocked
+Legend: ☐ todo · ◐ in-progress · ✓ done · ✗ blocked · ⏸ deferred
 
-## Day 0 — Pre-sprint bootstrap
+---
 
-- ✓ 0.1 Cargo workspace init
-- ✓ 0.2 Workspace shared deps in Cargo.toml
-- ✓ 0.3 .gitignore, .env.example, LICENSE placeholder, CODE_OF_CONDUCT, CONTRIBUTING
-- ✓ 0.4 CI workflows (ci/audit/bench/docker)
-- ✓ 0.5 rustfmt.toml, clippy.toml, deny.toml
-- ✓ 0.6 11 empty crate skeletons
-- ✓ 0.7 compose.yaml (Postgres 16 + pgvector)
-- ✓ 0.8 tracing/logging init per crate
-- ◐ Day 0 build validation (cargo check running, bg: b3mk3nt7r)
+## Spec reset note (2026-05-10)
 
-## Day 1 — aco-core: types + provenance
-- ☐ 1.1 Id + canonical hashing
-- ☐ 1.2 Common types (EvidenceSpan, Provenance, Defeasibility, Derivation, TemporalInterval, Place)
-- ☐ 1.3 8 ACO primitives
-- ☐ 1.4 Interpersonal extensions (PatternFinding, AffectMarker, Emotion)
-- ☐ 1.5 Supporting enums
-- ☐ 1.6 FOL logical form
-- ☐ 1.7 Error types
-- ☐ 1.8 lib.rs re-exports
-- ☐ 1.9 Property tests (1000 iters)
+The original v2 plan targeted local docker-compose Postgres + direct Gemini API + Day-20 cloud deploy. The new v3 plan (current `ARCHITECTURE.md` + `BUILDPLAN.md`) is **GCP-native from Day 1**: Cloud SQL replaces local Postgres, Vertex AI replaces direct Gemini API, Terraform IaC and Cloud Build CI/CD are foundation work, and no production runtime executes locally.
 
-## Day 2 — aco-storage: Postgres
-- ☐ 2.1 Initial migration (001_init.sql up+down)
-- ☐ 2.2 Pool + connection mgmt
-- ☐ 2.3 Repo per primitive
-- ☐ 2.4 Provenance table writes
-- ☐ 2.5 Evidence span storage
-- ☐ 2.6 Edges table
-- ☐ 2.7 Audit log
-- ☐ 2.8 In-memory petgraph + hydration
-- ☐ 2.9 LISTEN/NOTIFY channel
-- ☐ 2.10 testcontainers integration tests
+Day 0 work done under the old plan (Cargo workspace, crate skeletons, basic CI) is preserved. The v2 `compose.yaml` is now superseded — kept on disk for reference until Day 4 is finished, then removed.
 
-## Day 3 — aco-llm + aco-embed
-- ☐ 3.1 LlmBackend trait
-- ☐ 3.2 GeminiBackend (gated live-api)
-- ☐ 3.3 MockLlmBackend (fixture replay)
-- ☐ 3.4 Retry
-- ☐ 3.5 Rate limiter (governor)
-- ☐ 3.6 Cost ledger
-- ☐ 3.7 Postgres response cache
-- ☐ 3.8 fastembed embedding
-- ☐ 3.9 Tests
+---
 
-## Day 4 — aco-perceive: extractors
-- ☐ 4.1 Extractor trait
-- ☐ 4.2 EntityExtractor + schema + prompt
-- ☐ 4.3 EventExtractor
-- ☐ 4.4 ClaimExtractor
-- ☐ 4.5 AffectExtractor
-- ☐ 4.6 PatternExtractor
-- ☐ 4.7 TemporalExtractor
-- ☐ 4.8 Parallel orchestrator
-- ☐ 4.9 Verify-and-repair
-- ☐ 4.10 Document loaders (txt/pdf/docx/md)
+## Pre-Sprint — GCP bootstrap (Day 0)
 
-## Day 5 — aco-fuse: canonicalization
-- ☐ 5.1 Canonical hash signature
-- ☐ 5.2 Entity normalisation
-- ☐ 5.3 Event + claim normalisation
-- ☐ 5.4 HNSW ANN
-- ☐ 5.5 Entity resolver
-- ☐ 5.6 Event coreference
-- ☐ 5.7 Claim dedup
-- ☐ 5.8 Temporal alignment
-- ☐ 5.9 Confidence reconciliation
-- ☐ 5.10 Alias graph storage
-- ☐ 5.11 E2E fusion test
+| # | Task | Status | Notes |
+|---|---|---|---|
+| 0.1 | Create dev + prod GCP projects | ☐ | [You] interactive, see `SETUP.md` §1.1 |
+| 0.2 | Attach billing accounts | ☐ | [You] |
+| 0.3 | Enable 17 APIs | ☐ | `make bootstrap` |
+| 0.4 | Quota uplift for Vertex AI Gemini | ☐ | [You] console request |
+| 0.5 | `gcloud auth login` + ADC | ☐ | [You] browser |
+| 0.6 | Repo init (already cloned) | ✓ | local dir + remote on GitHub (no push yet) |
+| 0.7 | Makefile + bootstrap.sh + connect-github.sh | ✓ | scaffolded 2026-05-10 |
+| 0.8 | `.env.example` for GCP-native vars | ✓ | replaced v2 file |
+| 0.9 | First push to `sargonxg/AGON` | ☐ | pending: `git remote add origin` + push |
 
-## Day 6 — aco-infer + aco-score (first pass)
-- ☐ 6.1 Infer engine entry point
-- ☐ 6.2 Datalog rules: leverage, gaps
-- ☐ 6.3 Coalition rule
-- ☐ 6.4 Temporal rules (Allen)
-- ☐ 6.5 Friction score
-- ☐ 6.6 Power asymmetry
-- ☐ 6.7 Trust trajectory
-- ☐ 6.8 Score persistence
-- ☐ 6.9 Tests
+### Legacy Day 0 (v2) — keep
+- ✓ Cargo workspace init
+- ✓ 12 crate skeletons (`crates/aco-*/`)
+- ✓ rustfmt.toml, clippy.toml, deny.toml
+- ✓ CI workflows scaffold under `.github/workflows/`
+- ⏸ `compose.yaml` (will be removed after Day 4)
 
-## Day 7 — aco-cli + first scenario
-- ☐ 7.1 CLI with clap
-- ☐ 7.2 `agon db init`
-- ☐ 7.3 `agon ingest`
-- ☐ 7.4 `agon perceive`
-- ☐ 7.5 `agon fuse`
-- ☐ 7.6 `agon think`
-- ☐ 7.7 `agon stats`
-- ☐ 7.8 `agon run` mega-command
-- ☐ 7.9 workplace_dispute corpus
-- ☐ 7.10 Expected snapshots
-- ☐ 7.11 E2E integration test
+---
 
-## Sprint 1 exit criteria
-- ☐ cargo test --all green
-- ☐ `agon run corpora/workplace_dispute/` produces canonical world model + ≥1 Friction Score
-- ☐ Internal 90s demo clip exists
+## Sprint 1 — Foundations on GCP (Days 1–7)
+
+**Goal:** end-to-end smoke run on deployed dev environment. CI/CD pipeline: `git push` → Cloud Build → Cloud Run revision.
+
+### Day 1 — `aco-core`: types and provenance
+- ◐ 1.1 Id + canonical hashing (`crates/aco-core/src/id.rs` — exists, uncommitted)
+- ◐ 1.2 Common types
+- ◐ 1.3 Eight primitives (exist as files, uncommitted)
+- ◐ 1.4 Interpersonal extensions (`patterns.rs`)
+- ◐ 1.5 Enums + FOL + errors
+- ☐ 1.6 Property tests (1000 iters/primitive)
+- ☐ 1.7 `cargo test -p aco-core` green
+- ☐ 1.8 `cargo doc -p aco-core` clean
+
+### Day 2 — Terraform IaC (provisions dev env)
+- ☐ 2.1 `infra/terraform/{main,variables,outputs}.tf` skeleton
+- ☐ 2.2 APIs module
+- ☐ 2.3 Network module (VPC + private service connection)
+- ☐ 2.4 Cloud SQL module (Postgres 16, private IP, pgvector + ltree)
+- ☐ 2.5 Storage module
+- ☐ 2.6 Artifact Registry module
+- ☐ 2.7 IAM module (3 SAs, least privilege)
+- ☐ 2.8 Secrets module
+- ☐ 2.9 Cloud Run module (service + Job, placeholder image)
+- ☐ 2.10 Eventarc module
+- ☐ 2.11 `envs/dev/{terraform.tfvars,backend.tf}`
+- ☐ 2.12 `make infra-apply` clean
+
+### Day 3 — `aco-llm`: Vertex AI Gemini + Mock
+- ☐ 3.1 `LlmBackend` trait
+- ☐ 3.2 `VertexAiBackend` (live, gated `--features live-vertex`)
+- ☐ 3.3 Service-account auth
+- ☐ 3.4 `MockLlmBackend` + fixture replay
+- ☐ 3.5 Retry + rate limit + cost ledger + cache
+- ☐ 3.6 `aco-embed` fastembed BAAI/bge-small-en-v1.5
+- ☐ 3.7 Tests
+
+### Day 4 — `aco-storage`: Cloud SQL via sqlx
+- ☐ 4.1 `migrations/001_init.up.sql` + `.down.sql`
+- ☐ 4.2 Pool + Secret Manager password
+- ☐ 4.3 Repos per primitive
+- ☐ 4.4 Provenance + spans + edges + audit
+- ☐ 4.5 `petgraph` mirror + hydration
+- ☐ 4.6 `LISTEN`/`NOTIFY`
+- ☐ 4.7 Tests
+
+### Day 5 — `aco-perceive` + `aco-fuse`
+### Day 6 — `aco-infer` + `aco-score` (first pass) + `aco-server`
+### Day 7 — Cloud Build CI/CD + first deploy + workplace-dispute scenario
+
+**Sprint 1 exit:**
+- ☐ `cargo test --all` green
+- ☐ `git push origin main` → green Cloud Build → Cloud Run revision ≤ 12 min
+- ☐ `agon-cli --api $(make url-raw) ingest corpora/workplace_dispute/` works
+- ☐ Dashboard at `make url` shows world model + 1 Friction Score
+
+---
+
+## Sprint 2 — Deep inference, scoring, dashboard (Days 8–14)
+
+Defeasible reasoning · Z3 contradiction · patterns + remaining scores · BATNA/ZOPA + abduction · dashboard upgrades + brief generator · live-demo dry-run · Ask mode + pragmatics. Expanded in `BUILDPLAN.md` §Sprint 2.
+
+---
+
+## Sprint 3 — Learning, hardening, release (Days 15–21)
+
+Learning loop · perf on Cloud Run · robustness + security · five golden corpora · prod environment + observability · docs · release v0.1.0 + final demo. Expanded in `BUILDPLAN.md` §Sprint 3.
+
+---
 
 ## Blockers / notes
-- 2026-05-10: Rust toolchain installing via winget (background task bsacd2soy)
-- 2026-05-10: Docker Desktop not installed. Postgres options: (a) winget PostgreSQL.PostgreSQL native, (b) Docker Desktop later, (c) defer Day 2 testcontainers tests
-- Gemini key in .env (NOT committed). Rotate after MVP done.
+
+- **2026-05-10** — Plan reset to GCP-native v3. Day 0 (v3) scaffold added. Interactive Day 0 steps in `SETUP.md`.
+- **2026-05-10** — Local tooling: `terraform` ✗, `make` ✗, `docker` not verified. `gcloud` ✓, `gh` ✓. See `SETUP.md` §0.
+- **2026-05-10** — `compose.yaml`, local-Postgres tests, direct-Gemini API code superseded. Remove in Day 4 commit.
+- **Security** — `.env` gitignored. No secrets in source. Vertex AI via Cloud Run SA. Cloud SQL password in Secret Manager.

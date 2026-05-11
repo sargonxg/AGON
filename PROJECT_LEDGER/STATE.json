@@ -1,18 +1,30 @@
 {
   "project": "AGON",
-  "mvp_target": "Sprint 1 (Days 1-7)",
+  "spec_version": "v3-gcp-native",
+  "mvp_target": "v0.1.0 (3 sprints, 21 days)",
   "started": "2026-05-10",
-  "mode": "autopilot",
+  "last_updated": "2026-05-10",
+  "current_sprint": 0,
   "current_day": 0,
-  "current_task": "0.1",
+  "current_task": "0.9 push to GitHub",
+  "github_repo": "sargonxg/AGON",
+  "github_remote_configured": false,
+  "gcp_project_dev": "tacitus-agon-dev",
+  "gcp_project_dev_created": false,
+  "gcp_project_prod": "tacitus-agon-prod",
+  "gcp_project_prod_created": false,
+  "cloud_run_dev_url": null,
   "blockers": [
-    {"id": "rust-toolchain", "status": "installing", "bg_task": "bsacd2soy"},
-    {"id": "postgres", "status": "not-installed", "options": ["winget-native", "docker-desktop"]}
+    {"id": "terraform-install", "status": "missing", "action": "winget install Hashicorp.Terraform"},
+    {"id": "make-install", "status": "missing", "action": "choco install make or use Git Bash"},
+    {"id": "gcp-project-create", "status": "todo", "action": "see SETUP.md §1.1"},
+    {"id": "cloud-build-github-app", "status": "todo", "action": "see SETUP.md §4 (browser OAuth)"}
   ],
-  "external": {
-    "gemini_api_key_env": "set in .env (not committed)",
-    "github_repo": "github.com/sargonxg/AGON",
-    "cloud_target": "GCP Cloud Run (post-MVP, Day 20)"
-  },
-  "files_touched": []
+  "tooling": {
+    "gcloud": {"ok": true, "active_account": "giulio@tacitus.me", "active_project": "praxisbytacitus"},
+    "gh": {"ok": true, "account": "sargonxg"},
+    "terraform": {"ok": false},
+    "make": {"ok": false},
+    "docker": {"ok": "unknown"}
+  }
 }
