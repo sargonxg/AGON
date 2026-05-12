@@ -1,14 +1,33 @@
 const $ = (id) => document.getElementById(id);
 
 const SAMPLES = {
-  workplace: `Sam (Mon 09:14): So we're agreed — you own the Q4 launch deck content, I handle design. Lock it in by Thursday?
+  workplace: `HR DOSSIER — Aurora launch conflict, compiled 2026-04-15
+
+Complaint summary from Sam Rivera:
+Sam alleges that Alex Kim accepted ownership of the Q4 launch deck content on Monday, then denied the agreement after missing the Wednesday internal deadline. Sam also alleges this is the third delivery ownership reversal in the quarter and says Alex has begun telling colleagues that Sam "sets people up to fail."
+
+Slack export:
+Sam (Mon 09:14): So we're agreed — you own the Q4 launch deck content, I handle design. Lock it in by Thursday?
 Alex (Mon 09:47): Sounds good. I'll pick it up after the Jenkins pitch.
+Mina (Mon 10:02): Great. I will hold design review until Alex sends content.
 Sam (Wed 17:02): Where are we on the deck content? Designer needs it tomorrow morning.
 Alex (Wed 17:31): What deck content? I thought you were doing the whole thing and I'd review.
 Sam (Wed 17:45): No — Monday we agreed I do design, you do content. I have the messages.
-Alex (Thu 09:02): I never said I'd own it. Just help. You're putting this on me last minute and now blaming me for not delivering something I never agreed to. Honestly, this kind of communication breakdown is exactly why nothing on this team works.
+Alex (Thu 09:02): I never said I'd own it. Just help. You're putting this on me last minute and now blaming me for not delivering something I never agreed to.
 Sam (Thu 09:14): Alex, this is the third time this quarter. We had it in writing. I have screenshots.
-Alex (Thu 09:30): Whatever. Send what you have, I'll finish it tonight. But we need to talk about how you set me up to fail.`,
+Alex (Thu 09:30): Whatever. Send what you have, I'll finish it tonight. But we need to talk about how you set me up to fail.
+
+Email from Mina to Sam and Alex, Wed 18:10:
+"The design review was moved because content was not ready. I understood from Monday's thread that Alex owned copy/content and Sam owned layout. If that changed, I was not told."
+
+Manager interview, Priya Shah, 2026-04-12:
+Priya says Alex reported feeling "publicly blamed" by Sam. Priya also says Sam escalated to her only after the missed Wednesday checkpoint. Priya denies telling Alex that Sam was responsible for the full deck.
+
+Alex response, 2026-04-13:
+"I agreed to help after Jenkins, not to own the entire content package. Sam routinely converts casual help into formal ownership after the fact. Mina's note reflects her assumption, not my commitment. I said I would finish it Thursday night to stop the escalation, not because I accepted blame."
+
+Sam rebuttal, 2026-04-14:
+"Alex's distinction between help and ownership is new. The phrase 'you own the Q4 launch deck content' was explicit. Alex said 'sounds good.' Mina also relied on that. This is not public blame; it is accountability for a written commitment."`,
 
   coparenting: `Jordan (Fri 18:22): Just confirming — I have Mia from Wednesday to Sunday next week, you have her the following week.
 Riley (Fri 18:40): That works. Pickup at 4:30 like usual.
@@ -276,6 +295,7 @@ function render(x) {
   $('n-patterns').textContent = (x.patterns || []).length;
   $('n-contras').textContent = (x.contradictions || []).length;
   $('summary').textContent = x.summary || '(no summary)';
+  renderLens(x);
 
   $('actors').innerHTML = (x.actors || []).map(a => `
     <div class="item">
@@ -360,6 +380,36 @@ function render(x) {
 
   $('raw').textContent = JSON.stringify(x, null, 2);
   drawGraph(x);
+}
+
+function renderLens(x) {
+  const el = $('lens');
+  if (!el) return;
+  const p = x.document_profile || {};
+  const neural = x.neural_signals || {};
+  const gates = x.quality_gates || [];
+  const questions = x.review_questions || [];
+  const notes = p.reading_notes || [];
+  const signals = neural.signals || [];
+  el.innerHTML = `
+    <div class="lens-grid">
+      <div><span class="meta">format</span><strong>${esc(p.format || 'unknown')}</strong></div>
+      <div><span class="meta">density</span><strong>${Number(p.conflict_density || 0).toFixed(2)}</strong></div>
+      <div><span class="meta">segments</span><strong>${(p.segments || []).length}</strong></div>
+      <div><span class="meta">neural signals</span><strong>${signals.length}</strong></div>
+    </div>
+    <div class="lens-section">
+      ${(notes.length ? notes : ['No pre-reading notes emitted']).map(n => `<div class="meta">• ${esc(n)}</div>`).join('')}
+    </div>
+    <div class="lens-section">
+      <h4>Quality gates</h4>
+      ${gates.map(g => `<span class="tag ${esc(g.status || 'review')}">${esc(g.label || g.id)} · ${Number(g.score || 0).toFixed(2)}</span>`).join('') || '<span class="meta">none</span>'}
+    </div>
+    <div class="lens-section">
+      <h4>Review questions</h4>
+      ${(questions.length ? questions : ['What additional source text would reduce uncertainty?']).map(q => `<div class="item compact">${esc(q)}</div>`).join('')}
+    </div>
+  `;
 }
 
 // Simple force-directed graph. No CDN.

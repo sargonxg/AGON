@@ -89,6 +89,7 @@ dependencies = [
  "aco-storage",
  "anyhow",
  "ascent",
+ "blake3",
  "chrono",
  "good_lp",
  "serde",
@@ -171,6 +172,8 @@ name = "aco-server"
 version = "0.1.0"
 dependencies = [
  "aco-core",
+ "aco-embed",
+ "aco-infer",
  "aco-llm",
  "aco-storage",
  "anyhow",

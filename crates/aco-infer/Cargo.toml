@@ -18,6 +18,7 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 anyhow = { workspace = true }
 ascent = { workspace = true }
+blake3 = { workspace = true }
 z3 = { workspace = true }
 good_lp = { workspace = true }
 chrono = { workspace = true }

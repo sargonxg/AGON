@@ -2,6 +2,8 @@
 
 use crate::pretransform::{self, PreCanonical};
 use crate::prompts::{PERCEIVE_SCHEMA, PERCEIVE_SYSTEM};
+use aco_embed::{ClaimInput, LocalNeuralSensor};
+use aco_infer::analyze_extraction;
 use aco_llm::{ExtractRequest, LlmBackend, MockLlmBackend, VertexAiBackend};
 use aco_storage::{Session, Store};
 use axum::{
@@ -200,10 +202,50 @@ fn resolve_model(m: Option<&str>) -> String {
     }
 }
 
-fn enrich_extraction(source_text: &str, mut x: serde_json::Value) -> serde_json::Value {
+fn enrich_extraction(
+    source_text: &str,
+    pc: &PreCanonical,
+    mut x: serde_json::Value,
+) -> serde_json::Value {
+    x["document_profile"] = serde_json::to_value(&pc.document_profile).unwrap_or_default();
     add_evidence_audit(source_text, &mut x);
+    add_neural_signals(&mut x);
     add_deterministic_contradictions(&mut x);
+    add_inference_layer(&mut x);
     x
+}
+
+fn add_neural_signals(x: &mut serde_json::Value) {
+    let claims = x
+        .get("claims")
+        .and_then(|v| v.as_array())
+        .map(|claims| {
+            claims
+                .iter()
+                .filter_map(|claim| {
+                    let id = claim.get("id").and_then(|v| v.as_str())?;
+                    let text = claim.get("text").and_then(|v| v.as_str())?;
+                    Some(ClaimInput {
+                        id: id.to_string(),
+                        actor_id: claim
+                            .get("actor_id")
+                            .and_then(|v| v.as_str())
+                            .map(str::to_string),
+                        text: text.to_string(),
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let summary = LocalNeuralSensor::from_env().analyze_claims(&claims);
+    x["neural_signals"] = serde_json::to_value(summary).unwrap_or_default();
+}
+
+fn add_inference_layer(x: &mut serde_json::Value) {
+    let analysis = analyze_extraction(x);
+    x["inferences"] = serde_json::to_value(&analysis.inferences).unwrap_or_default();
+    x["quality_gates"] = serde_json::to_value(&analysis.quality_gates).unwrap_or_default();
+    x["review_questions"] = serde_json::to_value(&analysis.review_questions).unwrap_or_default();
 }
 
 fn add_evidence_audit(source_text: &str, x: &mut serde_json::Value) {
@@ -583,7 +625,12 @@ struct PerceiveResponse {
     output_tokens: u32,
     persisted: bool,
     pre_canonical: PreCanonical,
+    document_profile: serde_json::Value,
     friction_matrix: serde_json::Value,
+    neural_signals: serde_json::Value,
+    inferences: serde_json::Value,
+    quality_gates: serde_json::Value,
+    review_questions: serde_json::Value,
     extraction: serde_json::Value,
 }
 
@@ -617,7 +664,7 @@ async fn perceive(
         s.backend.extract_json(req).await.map_err(|e| (StatusCode::BAD_GATEWAY, format!("{e}")))?;
 
     let elapsed = started.elapsed();
-    let extraction = enrich_extraction(&source_text, resp.value.clone());
+    let extraction = enrich_extraction(&source_text, &pc, resp.value.clone());
     let x = &extraction;
     let fmatrix = friction_matrix(x);
     let count = |k: &str| x.get(k).and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0) as i32;
@@ -660,8 +707,13 @@ async fn perceive(
         input_tokens: resp.input_tokens,
         output_tokens: resp.output_tokens,
         persisted,
+        document_profile: x.get("document_profile").cloned().unwrap_or_default(),
         pre_canonical: pc,
         friction_matrix: fmatrix,
+        neural_signals: x.get("neural_signals").cloned().unwrap_or_default(),
+        inferences: x.get("inferences").cloned().unwrap_or_default(),
+        quality_gates: x.get("quality_gates").cloned().unwrap_or_default(),
+        review_questions: x.get("review_questions").cloned().unwrap_or_default(),
         extraction,
     }))
 }
@@ -794,7 +846,7 @@ async fn perceive_stream(
         );
 
         t_stage = Instant::now();
-        let extraction = enrich_extraction(&source_text, resp.value.clone());
+        let extraction = enrich_extraction(&source_text, &pc, resp.value.clone());
         let x = &extraction;
         let count =
             |k: &str| x.get(k).and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0) as i32;
@@ -883,7 +935,12 @@ async fn perceive_stream(
                 "output_tokens": resp.output_tokens,
                 "persisted": persisted,
                 "pre_canonical": pc,
+                "document_profile": extraction.get("document_profile").cloned().unwrap_or_default(),
                 "friction_matrix": fmatrix,
+                "neural_signals": extraction.get("neural_signals").cloned().unwrap_or_default(),
+                "inferences": extraction.get("inferences").cloned().unwrap_or_default(),
+                "quality_gates": extraction.get("quality_gates").cloned().unwrap_or_default(),
+                "review_questions": extraction.get("review_questions").cloned().unwrap_or_default(),
                 "extraction": extraction,
             }),
         );
@@ -971,6 +1028,66 @@ fn render_markdown_report(sess: &Session) -> String {
     }
     out.push('\n');
 
+    out.push_str("## Conflict Lens\n\n");
+    if let Some(profile) = x.get("document_profile") {
+        out.push_str(&format!(
+            "- Format: `{}`\n- Conflict density: `{:.2}`\n- Segments: `{}`\n\n",
+            profile.get("format").and_then(|v| v.as_str()).unwrap_or("unknown"),
+            profile.get("conflict_density").and_then(|v| v.as_f64()).unwrap_or(0.0),
+            profile.get("segments").and_then(|v| v.as_array()).map(Vec::len).unwrap_or(0)
+        ));
+        if let Some(notes) = profile.get("reading_notes").and_then(|v| v.as_array()) {
+            for note in notes.iter().filter_map(|v| v.as_str()) {
+                out.push_str(&format!("- {}\n", note));
+            }
+        }
+    } else {
+        out.push_str("No document profile available.\n");
+    }
+    out.push('\n');
+
+    out.push_str("## Deterministic Inferences\n\n");
+    if let Some(rows) = array(x, "inferences") {
+        for row in rows {
+            out.push_str(&format!(
+                "- **{}** `{}` confidence `{}`\n  - {}\n",
+                str_field(row, "kind").unwrap_or("inference"),
+                str_field(row, "severity").unwrap_or("medium"),
+                row.get("confidence").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                str_field(row, "rationale").unwrap_or("")
+            ));
+        }
+    } else {
+        out.push_str("No deterministic inferences emitted.\n");
+    }
+    out.push('\n');
+
+    out.push_str("## Quality Gates\n\n");
+    if let Some(rows) = array(x, "quality_gates") {
+        for row in rows {
+            out.push_str(&format!(
+                "- `{}` **{}** score `{:.2}` — {}\n",
+                str_field(row, "status").unwrap_or("review"),
+                str_field(row, "label").unwrap_or("gate"),
+                row.get("score").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                str_field(row, "detail").unwrap_or("")
+            ));
+        }
+    } else {
+        out.push_str("No quality gate metadata available.\n");
+    }
+    out.push('\n');
+
+    out.push_str("## Review Questions\n\n");
+    if let Some(rows) = array(x, "review_questions") {
+        for row in rows.iter().filter_map(|v| v.as_str()) {
+            out.push_str(&format!("- {}\n", row));
+        }
+    } else {
+        out.push_str("- What additional source text would most reduce uncertainty?\n");
+    }
+    out.push('\n');
+
     out.push_str("## Contradictions\n\n");
     let claims = claim_lookup(x);
     if let Some(contradictions) = array(x, "contradictions") {
@@ -1042,7 +1159,7 @@ fn str_field<'a>(value: &'a serde_json::Value, key: &str) -> Option<&'a str> {
 
 #[cfg(test)]
 mod tests {
-    use super::enrich_extraction;
+    use super::{enrich_extraction, pretransform};
 
     #[test]
     fn enrichment_adds_evidence_audit() {
@@ -1054,7 +1171,8 @@ mod tests {
             "summary": "test",
             "friction_score": 10
         });
-        let enriched = enrich_extraction(source, x);
+        let pc = pretransform::transform(source);
+        let enriched = enrich_extraction(source, &pc, x);
         let audit = enriched.get("evidence_audit").unwrap().as_array().unwrap();
         assert!(audit
             .iter()
@@ -1074,7 +1192,8 @@ mod tests {
             "summary": "test",
             "friction_score": 60
         });
-        let enriched = enrich_extraction("x", x);
+        let pc = pretransform::transform("x");
+        let enriched = enrich_extraction("x", &pc, x);
         let contradictions = enriched.get("contradictions").unwrap().as_array().unwrap();
         assert_eq!(contradictions.len(), 1);
         assert_eq!(contradictions[0].get("source").and_then(|v| v.as_str()), Some("deterministic"));

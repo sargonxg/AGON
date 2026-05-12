@@ -29,6 +29,10 @@ Paste text. AGON extracts the conflict structure:
 - contradictions
 - evidence spans
 - actor x actor friction
+- document pre-reading profile
+- local neural/sparse claim relatedness signals
+- deterministic inference findings
+- quality gates and review questions
 - Markdown reports
 
 Every serious conclusion is tied back to source text. If a quote cannot be verified against the source, AGON marks it unresolved instead of pretending.
@@ -98,6 +102,7 @@ actors:         Sam, Alex
 claims:         4
 contradictions: deterministic and model-suggested conflict pairs
 evidence:       verified quote ledger
+inferences:     deterministic findings and quality gates
 report:         Markdown conflict intelligence report
 ```
 
@@ -127,6 +132,8 @@ The browser workbench is deliberately small. It exists to showcase the engine.
 The durable value is the Rust library stack:
 
 - strong primitive types in `aco-core`
+- local neural/sparse conflict signals in `aco-embed`
+- deterministic conflict inference in `aco-infer`
 - deterministic alias fusion in `aco-fuse`
 - model-constrained extraction in `aco-llm`
 - evidence-backed persistence in `aco-storage`
@@ -139,8 +146,11 @@ The app should stay simple enough that a user understands the result in one page
 ```text
 browser
   -> Cloud Run / Axum / Rust
+      -> deterministic pre-reading / document profile
       -> Vertex AI Gemini schema extraction
+      -> local sparse neural-signal layer
       -> Rust deterministic enrichment
+      -> inference findings + quality gates
       -> Cloud SQL Postgres typed persistence
       -> embedded one-page workbench
 ```
@@ -156,11 +166,20 @@ Current live capabilities:
 - `/readyz`
 - `/healthz`
 
+The `/api/perceive` response now includes these conflict-vision layers in addition to the original extraction:
+
+- `document_profile`: format, segments, temporal markers, modality markers, pre-reading notes, conflict density, candidate review questions.
+- `neural_signals`: local Rust claim relatedness signals. The current deployed path uses a deterministic sparse fallback and exposes fastembed model capability discovery; full model-download mode is gated by environment.
+- `inferences`: deterministic findings such as denied obligations, contested/broken commitments, escalation loops, and repair openings.
+- `quality_gates`: evidence coverage, actor ambiguity, and conflict signal strength.
+- `review_questions`: questions a mediator/investigator should resolve before treating the map as decision-ready.
+
 ## One-Page Workbench
 
 The UI is intentionally simple:
 
 - **Overview**: counts, summary, conflict graph
+- **Conflict vision lens**: pre-reading profile, quality gates, neural signals, review questions
 - **Actors**: canonical actors, aliases, relationships, power dynamics
 - **Friction**: actor x actor heat matrix with explainable drivers
 - **Contradictions**: side-by-side contradiction cards
@@ -174,7 +193,9 @@ No sprawling app shell. No generic chat surface. The page is a lens over the eng
 ```text
 crates/
   aco-core/      typed primitives, EvidenceSpan, Provenance, IDs
+  aco-embed/     local sparse/neural claim relatedness signals; fastembed-ready
   aco-fuse/      deterministic actor normalization and alias fusion
+  aco-infer/     deterministic inference findings and quality gates
   aco-llm/       Vertex/Gemini and mock extraction backends
   aco-storage/   Cloud SQL/Postgres persistence and evidence span recovery
   aco-server/    Axum API, SSE pipeline, auth, embedded dashboard
@@ -186,6 +207,7 @@ crates/
 ```
 
 The current production path is `aco-server` + `aco-llm` + `aco-storage` + `aco-fuse` + `aco-core`.
+The v0.2 conflict-vision path also uses `aco-embed` and `aco-infer`.
 
 ## Trust Core
 
@@ -198,6 +220,29 @@ AGON uses a strict evidence posture:
 - If evidence cannot be aligned, it is marked unresolved.
 - The UI shows verified vs unresolved evidence.
 - Markdown reports preserve the session, summary, contradictions, evidence ledger, and source text.
+- Quality gates make uncertainty explicit instead of hiding it in prose.
+- Review questions capture what a human should verify next.
+
+## Neural Signal Posture
+
+AGON is designed to become local-neural where that improves conflict understanding, but the live deployment stays operationally conservative.
+
+Current implementation:
+
+- `aco-embed` computes local sparse semantic relatedness over claim pairs.
+- It discovers supported `fastembed` embedding/reranker families without forcing model downloads during normal Cloud Run startup.
+- Relatedness is never treated as truth by itself. It raises candidate pairs for deterministic contradiction and review logic.
+
+Environment controls:
+
+```text
+AGON_NEURAL_MODE=local_sparse        # default
+AGON_NEURAL_MAX_PAIRS=250
+AGON_NEURAL_MIN_SIM=0.62
+AGON_NEURAL_CACHE_DIR=<future model cache path>
+```
+
+This keeps the architecture ready for local BGE/fastembed reranking while preserving fast cold starts and predictable costs today.
 
 ## Current Storage Model
 
@@ -215,6 +260,10 @@ Typed MVP tables:
 - `contradictions`
 - `evidence_spans`
 - `graph_edges`
+- `document_segments`
+- `neural_signals`
+- `inference_findings`
+- `quality_gates`
 
 The old session-history shape remains compatible with the dashboard.
 
@@ -296,6 +345,8 @@ Expected audit posture today: `cargo audit` exits successfully with existing all
 
 Near term:
 
+- stronger local fastembed/BGE reranker execution path behind `AGON_NEURAL_MODE=local`
+- NLI-style contradiction classifier evaluation as an optional Rust/ONNX sensor
 - deterministic denial/commitment/date contradiction expansion
 - richer typed persistence for relationships, power dynamics, escalation, and resolution openings
 - reviewed/unreviewed evidence workflow

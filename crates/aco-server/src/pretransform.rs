@@ -30,6 +30,7 @@ pub struct PreCanonical {
     pub n_lines: usize,
     pub n_turns: usize,
     pub format_hint: FormatHint,
+    pub document_profile: DocumentProfile,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -39,6 +40,26 @@ pub enum FormatHint {
     Transcript, // turn: speaker: ... (formal)
     Prose,      // narrative paragraphs
     Unknown,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DocumentSegment {
+    pub id: String,
+    pub kind: String,
+    pub label: String,
+    pub char_start: usize,
+    pub char_end: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DocumentProfile {
+    pub format: FormatHint,
+    pub segments: Vec<DocumentSegment>,
+    pub temporal_markers: Vec<String>,
+    pub modality_markers: Vec<String>,
+    pub conflict_density: f32,
+    pub reading_notes: Vec<String>,
+    pub candidate_questions: Vec<String>,
 }
 
 // "Alex:", "Alex (Mon 09:14):", "Alex (Thursday):", "Alex — ", "DR. PARK:".
@@ -88,7 +109,25 @@ pub fn transform(input: &str) -> PreCanonical {
     };
 
     let n_turns = turns.len();
-    PreCanonical { turns, speakers: speakers_seen, n_chars, n_lines, n_turns, format_hint }
+    let mut pc = PreCanonical {
+        turns,
+        speakers: speakers_seen,
+        n_chars,
+        n_lines,
+        n_turns,
+        format_hint,
+        document_profile: DocumentProfile {
+            format: format_hint,
+            segments: Vec::new(),
+            temporal_markers: Vec::new(),
+            modality_markers: Vec::new(),
+            conflict_density: 0.0,
+            reading_notes: Vec::new(),
+            candidate_questions: Vec::new(),
+        },
+    };
+    pc.document_profile = profile(input, &pc);
+    pc
 }
 
 /// Render a compact envelope that gets passed to the LLM so it has a
@@ -99,16 +138,178 @@ pub fn render_envelope(pc: &PreCanonical) -> String {
     }
     let mut s = String::from("=== Pre-canonical envelope (deterministic, do not paraphrase) ===\n");
     s.push_str(&format!(
-        "format: {:?}\nturns: {}\nchars: {}\n",
-        pc.format_hint, pc.n_turns, pc.n_chars
+        "format: {:?}\nturns: {}\nchars: {}\nconflict_density: {:.2}\n",
+        pc.format_hint, pc.n_turns, pc.n_chars, pc.document_profile.conflict_density
     ));
     s.push_str("speakers (canonical):\n");
     for sp in &pc.speakers {
         let id = canonical_id(sp);
         s.push_str(&format!("  - id={id}  label=\"{sp}\"\n"));
     }
+    if !pc.document_profile.temporal_markers.is_empty() {
+        s.push_str("temporal markers:\n");
+        for marker in pc.document_profile.temporal_markers.iter().take(12) {
+            s.push_str(&format!("  - {marker}\n"));
+        }
+    }
+    if !pc.document_profile.reading_notes.is_empty() {
+        s.push_str("pre-reading notes:\n");
+        for note in pc.document_profile.reading_notes.iter().take(8) {
+            s.push_str(&format!("  - {note}\n"));
+        }
+    }
     s.push_str("=== End envelope ===\n");
     s
+}
+
+fn profile(input: &str, pc: &PreCanonical) -> DocumentProfile {
+    let mut segments = Vec::new();
+    let mut offset = 0usize;
+    for (idx, block) in input.split("\n\n").enumerate() {
+        let start = offset;
+        let end = start + block.chars().count();
+        let first = block.lines().next().unwrap_or("").trim();
+        let kind = if first.to_ascii_uppercase().contains("DEPOSITION")
+            || first.to_ascii_uppercase().contains("INTERVIEW")
+            || first.to_ascii_uppercase().contains("NOTE")
+            || first.to_ascii_uppercase().contains("EMAIL")
+            || first.to_ascii_uppercase().contains("SLACK")
+        {
+            "source_block"
+        } else if pc.format_hint == FormatHint::Dialog {
+            "dialog_window"
+        } else {
+            "paragraph"
+        };
+        segments.push(DocumentSegment {
+            id: format!("seg_{}", idx + 1),
+            kind: kind.into(),
+            label: if first.is_empty() {
+                format!("segment {}", idx + 1)
+            } else {
+                first.chars().take(72).collect()
+            },
+            char_start: start,
+            char_end: end,
+        });
+        offset += block.chars().count() + 2;
+    }
+
+    let lower = input.to_ascii_lowercase();
+    let temporal_markers = collect_markers(
+        &lower,
+        &[
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday",
+            "today",
+            "tomorrow",
+            "yesterday",
+            "before",
+            "after",
+            "march",
+            "april",
+            "june",
+            "q1",
+            "q2",
+            "q3",
+            "q4",
+        ],
+    );
+    let modality_markers = collect_markers(
+        &lower,
+        &[
+            "never",
+            "not",
+            "must",
+            "should",
+            "agreed",
+            "approved",
+            "denied",
+            "claimed",
+            "alleges",
+            "promised",
+            "committed",
+            "postponed",
+            "cancelled",
+            "escalated",
+        ],
+    );
+    let conflict_terms = [
+        "never",
+        "not",
+        "deny",
+        "denied",
+        "blame",
+        "fault",
+        "failed",
+        "complaint",
+        "retaliation",
+        "escalated",
+        "objected",
+        "contradict",
+        "bypass",
+        "threat",
+    ];
+    let conflict_hits = conflict_terms.iter().filter(|term| lower.contains(**term)).count();
+    let conflict_density = ((conflict_hits as f32 / 10.0) + (pc.n_turns as f32 / 40.0)).min(1.0);
+
+    let mut reading_notes = Vec::new();
+    if pc.n_turns >= 3 {
+        reading_notes
+            .push(format!("{} speaker turns detected before model extraction", pc.n_turns));
+    }
+    if segments.len() > 1 {
+        reading_notes.push(format!(
+            "{} source/paragraph segments available for cross-checking",
+            segments.len()
+        ));
+    }
+    if !temporal_markers.is_empty() {
+        reading_notes.push("temporal language is present; date/order conflicts should be checked deterministically".into());
+    }
+    if modality_markers.iter().any(|m| m == "never" || m == "not" || m == "denied") {
+        reading_notes.push(
+            "denial language is present; assertion/denial pairs should be prioritized".into(),
+        );
+    }
+
+    let mut candidate_questions = Vec::new();
+    if !temporal_markers.is_empty() {
+        candidate_questions.push(
+            "Which sequence of events is contested, and what evidence anchors each date?".into(),
+        );
+    }
+    if modality_markers.iter().any(|m| m == "agreed" || m == "promised" || m == "committed") {
+        candidate_questions
+            .push("What exact text created or limited the alleged commitment?".into());
+    }
+    if conflict_density > 0.45 {
+        candidate_questions
+            .push("Which actor-pair has the strongest friction drivers and why?".into());
+    }
+
+    DocumentProfile {
+        format: pc.format_hint,
+        segments,
+        temporal_markers,
+        modality_markers,
+        conflict_density,
+        reading_notes,
+        candidate_questions,
+    }
+}
+
+fn collect_markers(text: &str, markers: &[&str]) -> Vec<String> {
+    markers
+        .iter()
+        .filter(|marker| text.contains(**marker))
+        .map(|marker| (*marker).to_string())
+        .collect()
 }
 
 pub fn canonical_id(label: &str) -> String {
@@ -131,6 +332,7 @@ mod tests {
         assert_eq!(pc.n_turns, 3);
         assert_eq!(pc.speakers.len(), 2);
         assert_eq!(pc.format_hint, FormatHint::Dialog);
+        assert!(pc.document_profile.conflict_density > 0.0);
     }
 
     #[test]

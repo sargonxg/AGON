@@ -146,6 +146,22 @@ button:disabled { opacity: 0.6; cursor: wait; }
 .summary h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px; font-weight: 500; }
 .summary p { font-size: 16px; line-height: 1.55; }
 
+.lens { font-size: 13px; }
+.lens-grid {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px;
+}
+.lens-grid > div {
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px;
+}
+.lens-grid span { display: block; margin-bottom: 4px; }
+.lens-grid strong { font: 700 18px ui-monospace, monospace; color: var(--accent-2); }
+.lens-section { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 10px; }
+.lens-section h4 {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--muted); font-weight: 500; margin-bottom: 8px;
+}
+.item.compact { padding: 8px 10px; font-size: 13px; }
+
 .grid {
   display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
 }
@@ -176,6 +192,10 @@ button:disabled { opacity: 0.6; cursor: wait; }
 .tag.high { background: rgba(248,113,113,0.15); color: var(--bad); }
 .tag.med { background: rgba(250,204,21,0.15); color: var(--warn); }
 .tag.low { background: rgba(74,222,128,0.15); color: var(--good); }
+.tag.pass { background: rgba(74,222,128,0.15); color: var(--good); }
+.tag.review { background: rgba(250,204,21,0.15); color: var(--warn); }
+.tag.fail { background: rgba(248,113,113,0.15); color: var(--bad); }
+.tag.opportunity { background: rgba(74,222,128,0.15); color: var(--good); }
 
 .picker { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
 .picker label { text-transform: uppercase; letter-spacing: 0.08em; }
@@ -240,6 +260,7 @@ footer {
   .hero-grid { grid-template-columns: 1fr; }
   .intake h1 { font-size: 30px; }
   .cards { grid-template-columns: repeat(2, 1fr); }
+  .lens-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid { grid-template-columns: 1fr; }
   .panel.wide { grid-column: auto; }
   .claim-pair { grid-template-columns: 1fr; }

@@ -242,6 +242,8 @@ async fn insert_typed_perception_tx(
     .execute(&mut **tx)
     .await?;
 
+    insert_document_segments(tx, s, &document_id).await?;
+
     let mut n_evidence_spans = 0;
     let mut n_claims = 0;
     let mut n_contradictions = 0;
@@ -528,6 +530,10 @@ async fn insert_typed_perception_tx(
         }
     }
 
+    insert_neural_signals(tx, s).await?;
+    insert_inference_findings(tx, s).await?;
+    insert_quality_gates(tx, s).await?;
+
     Ok(PersistedPerception {
         session_id: s.id,
         document_id,
@@ -584,6 +590,161 @@ async fn insert_evidence_span(
     .execute(&mut **tx)
     .await?;
     Ok(evidence_id)
+}
+
+async fn insert_document_segments(
+    tx: &mut Transaction<'_, Postgres>,
+    s: &Session,
+    document_id: &str,
+) -> Result<(), StoreError> {
+    let Some(profile) = s.extraction.get("document_profile") else {
+        return Ok(());
+    };
+    let Some(segments) = profile.get("segments").and_then(Value::as_array) else {
+        return Ok(());
+    };
+    for segment in segments {
+        let raw_id = str_field(segment, "id").unwrap_or("segment");
+        let segment_id = deterministic_id("segment", &format!("{}:{raw_id}", s.id));
+        sqlx::query(
+            r#"
+            INSERT INTO document_segments
+                (id, session_id, document_id, kind, label, char_start, char_end, raw_json)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT (id) DO UPDATE SET
+                kind = EXCLUDED.kind,
+                label = EXCLUDED.label,
+                char_start = EXCLUDED.char_start,
+                char_end = EXCLUDED.char_end,
+                raw_json = EXCLUDED.raw_json
+            "#,
+        )
+        .bind(&segment_id)
+        .bind(s.id)
+        .bind(document_id)
+        .bind(str_field(segment, "kind").unwrap_or("segment"))
+        .bind(str_field(segment, "label").unwrap_or(raw_id))
+        .bind(segment.get("char_start").and_then(Value::as_i64).unwrap_or(0) as i32)
+        .bind(segment.get("char_end").and_then(Value::as_i64).unwrap_or(0) as i32)
+        .bind(segment)
+        .execute(&mut **tx)
+        .await?;
+    }
+    Ok(())
+}
+
+async fn insert_neural_signals(
+    tx: &mut Transaction<'_, Postgres>,
+    s: &Session,
+) -> Result<(), StoreError> {
+    let signals =
+        s.extraction.get("neural_signals").and_then(|v| v.get("signals")).and_then(Value::as_array);
+    let Some(signals) = signals else {
+        return Ok(());
+    };
+    for signal in signals {
+        let a = str_field(signal, "a").unwrap_or("");
+        let b = str_field(signal, "b").unwrap_or("");
+        let kind = str_field(signal, "kind").unwrap_or("signal");
+        let signal_id = deterministic_id("neural", &format!("{}:{kind}:{a}:{b}", s.id));
+        sqlx::query(
+            r#"
+            INSERT INTO neural_signals
+                (id, session_id, kind, source_id, target_id, score, model, rationale, raw_json)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            ON CONFLICT (id) DO UPDATE SET
+                score = EXCLUDED.score,
+                model = EXCLUDED.model,
+                rationale = EXCLUDED.rationale,
+                raw_json = EXCLUDED.raw_json
+            "#,
+        )
+        .bind(&signal_id)
+        .bind(s.id)
+        .bind(kind)
+        .bind(a)
+        .bind(b)
+        .bind(signal.get("score").and_then(Value::as_f64).unwrap_or(0.0))
+        .bind(str_field(signal, "model").unwrap_or(""))
+        .bind(str_field(signal, "rationale").unwrap_or(""))
+        .bind(signal)
+        .execute(&mut **tx)
+        .await?;
+    }
+    Ok(())
+}
+
+async fn insert_inference_findings(
+    tx: &mut Transaction<'_, Postgres>,
+    s: &Session,
+) -> Result<(), StoreError> {
+    let Some(findings) = array(&s.extraction, "inferences") else {
+        return Ok(());
+    };
+    for finding in findings {
+        let raw_id = str_field(finding, "id").unwrap_or("finding");
+        let finding_id = deterministic_id("finding", &format!("{}:{raw_id}", s.id));
+        sqlx::query(
+            r#"
+            INSERT INTO inference_findings
+                (id, session_id, kind, severity, confidence, source, rationale, raw_json)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT (id) DO UPDATE SET
+                severity = EXCLUDED.severity,
+                confidence = EXCLUDED.confidence,
+                source = EXCLUDED.source,
+                rationale = EXCLUDED.rationale,
+                raw_json = EXCLUDED.raw_json
+            "#,
+        )
+        .bind(&finding_id)
+        .bind(s.id)
+        .bind(str_field(finding, "kind").unwrap_or("inference"))
+        .bind(str_field(finding, "severity").unwrap_or("medium"))
+        .bind(finding.get("confidence").and_then(Value::as_f64).unwrap_or(0.0))
+        .bind(str_field(finding, "source").unwrap_or("deterministic"))
+        .bind(str_field(finding, "rationale").unwrap_or(""))
+        .bind(finding)
+        .execute(&mut **tx)
+        .await?;
+    }
+    Ok(())
+}
+
+async fn insert_quality_gates(
+    tx: &mut Transaction<'_, Postgres>,
+    s: &Session,
+) -> Result<(), StoreError> {
+    let Some(gates) = array(&s.extraction, "quality_gates") else {
+        return Ok(());
+    };
+    for gate in gates {
+        let raw_id = str_field(gate, "id").unwrap_or("gate");
+        let gate_id = deterministic_id("gate", &format!("{}:{raw_id}", s.id));
+        sqlx::query(
+            r#"
+            INSERT INTO quality_gates
+                (id, session_id, label, status, score, detail, raw_json)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (id) DO UPDATE SET
+                label = EXCLUDED.label,
+                status = EXCLUDED.status,
+                score = EXCLUDED.score,
+                detail = EXCLUDED.detail,
+                raw_json = EXCLUDED.raw_json
+            "#,
+        )
+        .bind(&gate_id)
+        .bind(s.id)
+        .bind(str_field(gate, "label").unwrap_or(raw_id))
+        .bind(str_field(gate, "status").unwrap_or("review"))
+        .bind(gate.get("score").and_then(Value::as_f64).unwrap_or(0.0))
+        .bind(str_field(gate, "detail").unwrap_or(""))
+        .bind(gate)
+        .execute(&mut **tx)
+        .await?;
+    }
+    Ok(())
 }
 
 async fn insert_actor_alias(
