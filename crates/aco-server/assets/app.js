@@ -139,6 +139,7 @@ $('run').addEventListener('click', async () => {
   if (!text) { setStatus('paste some text first', true); return; }
   const btn = $('run');
   btn.disabled = true;
+  $('report-link')?.classList.add('hidden');
   setStatus('streaming…');
   resetPipeline();
   const t0 = performance.now();
@@ -197,6 +198,7 @@ function handleSseFrame(frame) {
     markPriorDone();
     addStep('result', 'world model built', 'done', '', payload.elapsed_ms);
     setStatus(`${payload.extraction.actors?.length || 0} actors · ${payload.input_tokens}/${payload.output_tokens} tokens · ${(payload.elapsed_ms/1000).toFixed(1)}s · ${payload.model}${payload.persisted ? ' · 💾' : ''}`);
+    setReportLink(payload.session_id);
     render(payload.extraction);
     renderHeatmap(payload.friction_matrix, payload.extraction);
     renderPreCanon(payload.pre_canonical);
@@ -208,6 +210,18 @@ function handleSseFrame(frame) {
   } else if (evt === 'warn') {
     addStep('warn', payload.warn, 'error');
   }
+}
+
+function setReportLink(sessionId) {
+  const link = $('report-link');
+  if (!link) return;
+  if (!sessionId) {
+    link.classList.add('hidden');
+    link.removeAttribute('href');
+    return;
+  }
+  link.href = `/api/sessions/${sessionId}/report.md`;
+  link.classList.remove('hidden');
 }
 
 function markPriorDone() {
@@ -546,12 +560,28 @@ function renderResolution(x) {
 
 function renderEvidenceLedger(x) {
   const source = $('text').value || '';
-  const rows = [];
+  const rows = Array.isArray(x.evidence_audit) ? x.evidence_audit.map(r => ({
+    kind: r.kind,
+    label: r.label,
+    quote: r.quote,
+    verified: r.status === 'verified'
+  })) : [];
   const push = (kind, label, quote) => {
     if (!quote) return;
     const verified = source.includes(quote);
     rows.push({ kind, label, quote, verified });
   };
+  if (rows.length) {
+    $('evidence-ledger').innerHTML = rows.map(r => `
+      <div class="item evidence-row">
+        <span class="tag">${esc(r.kind)}</span>
+        <span class="tag ${r.verified ? 'low' : 'material'}">${r.verified ? 'verified' : 'unresolved'}</span>
+        <div class="meta">${esc(trunc(r.label, 100))}</div>
+        <span class="ev">"${esc(r.quote)}"</span>
+      </div>
+    `).join('');
+    return;
+  }
   (x.actors || []).forEach(a => push('actor', a.label || a.id, a.evidence));
   (x.claims || []).forEach(c => push('claim', c.text, c.evidence));
   (x.events || []).forEach(e => push('event', e.label, e.evidence));

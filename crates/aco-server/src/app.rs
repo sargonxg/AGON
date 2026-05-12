@@ -99,6 +99,7 @@ pub fn build_app(state: Arc<AppState>) -> Router {
         .route("/api/perceive/stream", post(perceive_stream))
         .route("/api/sessions", get(list_sessions))
         .route("/api/sessions/{id}", get(get_session_by_id))
+        .route("/api/sessions/{id}/report.md", get(get_session_report_md))
         .layer(middleware::from_fn(require_demo_auth));
 
     public
@@ -197,6 +198,191 @@ fn resolve_model(m: Option<&str>) -> String {
         "flash" | "" => "gemini-2.5-flash".into(),
         other => other.into(),
     }
+}
+
+fn enrich_extraction(source_text: &str, mut x: serde_json::Value) -> serde_json::Value {
+    add_evidence_audit(source_text, &mut x);
+    add_deterministic_contradictions(&mut x);
+    x
+}
+
+fn add_evidence_audit(source_text: &str, x: &mut serde_json::Value) {
+    let mut rows = Vec::new();
+    let primitive_sets = [
+        ("actor", "actors", "label"),
+        ("claim", "claims", "text"),
+        ("event", "events", "label"),
+        ("commitment", "commitments", "subject"),
+        ("pattern", "patterns", "kind"),
+        ("relationship", "relationships", "type"),
+        ("power_dynamic", "power_dynamics", "basis"),
+        ("escalation", "escalation_signals", "trigger"),
+        ("resolution", "resolution_opportunities", "opening"),
+    ];
+    for (kind, key, label_key) in primitive_sets {
+        if let Some(items) = x.get(key).and_then(|v| v.as_array()) {
+            for item in items {
+                let Some(quote) = item.get("evidence").and_then(|v| v.as_str()) else {
+                    continue;
+                };
+                let label = item.get(label_key).and_then(|v| v.as_str()).unwrap_or(kind);
+                rows.push(serde_json::json!({
+                    "kind": kind,
+                    "label": label,
+                    "quote": quote,
+                    "status": if quote_matches(source_text, quote) { "verified" } else { "unresolved" },
+                }));
+            }
+        }
+    }
+    x["evidence_audit"] = serde_json::Value::Array(rows);
+}
+
+fn add_deterministic_contradictions(x: &mut serde_json::Value) {
+    let Some(claims) = x.get("claims").and_then(|v| v.as_array()) else {
+        return;
+    };
+    let mut additions = Vec::new();
+    let mut known = std::collections::HashSet::new();
+    if let Some(existing) = x.get("contradictions").and_then(|v| v.as_array()) {
+        for c in existing {
+            let a = c.get("claim_a").and_then(|v| v.as_str()).unwrap_or("");
+            let b = c.get("claim_b").and_then(|v| v.as_str()).unwrap_or("");
+            known.insert(pair_key(a, b));
+        }
+    }
+
+    for (i, a) in claims.iter().enumerate() {
+        for b in claims.iter().skip(i + 1) {
+            let Some(a_id) = a.get("id").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let Some(b_id) = b.get("id").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            if known.contains(&pair_key(a_id, b_id)) {
+                continue;
+            }
+            let a_text = a.get("text").and_then(|v| v.as_str()).unwrap_or("");
+            let b_text = b.get("text").and_then(|v| v.as_str()).unwrap_or("");
+            let a_pol = a.get("polarity").and_then(|v| v.as_str()).unwrap_or("ambiguous");
+            let b_pol = b.get("polarity").and_then(|v| v.as_str()).unwrap_or("ambiguous");
+            let a_actor = a.get("actor_id").and_then(|v| v.as_str()).unwrap_or("");
+            let b_actor = b.get("actor_id").and_then(|v| v.as_str()).unwrap_or("");
+            if a_actor == b_actor || a_actor.is_empty() || b_actor.is_empty() {
+                continue;
+            }
+
+            let denial_pair = (a_pol == "deny" && b_pol == "assert")
+                || (b_pol == "deny" && a_pol == "assert")
+                || (has_denial_language(a_text) != has_denial_language(b_text)
+                    && token_overlap(a_text, b_text) >= 2);
+            let timing_pair =
+                token_overlap(a_text, b_text) >= 2 && has_temporal_conflict(a_text, b_text);
+            let status_pair =
+                token_overlap(a_text, b_text) >= 2 && has_status_conflict(a_text, b_text);
+
+            if denial_pair || timing_pair || status_pair {
+                known.insert(pair_key(a_id, b_id));
+                let rationale = if timing_pair {
+                    "Deterministic date/order language indicates incompatible timelines."
+                } else if status_pair {
+                    "Deterministic status language indicates incompatible account of the same obligation."
+                } else {
+                    "Deterministic denial/assertion pattern over overlapping terms."
+                };
+                additions.push(serde_json::json!({
+                    "claim_a": a_id,
+                    "claim_b": b_id,
+                    "materiality": "material",
+                    "source": "deterministic",
+                    "confidence": 0.72,
+                    "rationale": rationale,
+                }));
+            }
+        }
+    }
+
+    if additions.is_empty() {
+        return;
+    }
+    let contradictions = x
+        .as_object_mut()
+        .expect("extraction root is object")
+        .entry("contradictions")
+        .or_insert_with(|| serde_json::Value::Array(Vec::new()));
+    if let Some(arr) = contradictions.as_array_mut() {
+        arr.extend(additions);
+    }
+}
+
+fn quote_matches(source_text: &str, quote: &str) -> bool {
+    source_text.contains(quote.trim())
+        || normalized_text(source_text).contains(&normalized_text(quote))
+}
+
+fn normalized_text(s: &str) -> String {
+    s.chars().filter(|c| c.is_ascii_alphanumeric()).flat_map(|c| c.to_lowercase()).collect()
+}
+
+fn pair_key(a: &str, b: &str) -> String {
+    if a < b {
+        format!("{a}|{b}")
+    } else {
+        format!("{b}|{a}")
+    }
+}
+
+fn has_denial_language(text: &str) -> bool {
+    let t = text.to_ascii_lowercase();
+    [" not ", " never ", " no ", " didn't ", " did not ", " wasn't ", " was not ", " denies "]
+        .iter()
+        .any(|needle| format!(" {t} ").contains(needle))
+}
+
+fn has_temporal_conflict(a: &str, b: &str) -> bool {
+    let a = a.to_ascii_lowercase();
+    let b = b.to_ascii_lowercase();
+    let terms = [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+        "before",
+        "after",
+    ];
+    terms.iter().any(|term| a.contains(term)) && terms.iter().any(|term| b.contains(term)) && a != b
+}
+
+fn has_status_conflict(a: &str, b: &str) -> bool {
+    let a = a.to_ascii_lowercase();
+    let b = b.to_ascii_lowercase();
+    let pairs = [
+        ("cancelled", "postponed"),
+        ("canceled", "postponed"),
+        ("approved", "not approved"),
+        ("signed off", "no approval"),
+        ("completed", "not completed"),
+        ("agreed", "never agreed"),
+    ];
+    pairs.iter().any(|(x, y)| (a.contains(x) && b.contains(y)) || (a.contains(y) && b.contains(x)))
+}
+
+fn token_overlap(a: &str, b: &str) -> usize {
+    let stop = [
+        "the", "and", "for", "that", "this", "with", "from", "was", "were", "had", "has", "have",
+        "not", "never", "said", "says", "claim", "claims",
+    ];
+    let toks = |s: &str| -> std::collections::HashSet<String> {
+        s.split(|c: char| !c.is_ascii_alphanumeric())
+            .map(str::to_ascii_lowercase)
+            .filter(|t| t.len() >= 4 && !stop.contains(&t.as_str()))
+            .collect()
+    };
+    toks(a).intersection(&toks(b)).count()
 }
 
 /// Compute an actor-vs-actor friction matrix from claims + contradictions + patterns.
@@ -431,7 +617,8 @@ async fn perceive(
         s.backend.extract_json(req).await.map_err(|e| (StatusCode::BAD_GATEWAY, format!("{e}")))?;
 
     let elapsed = started.elapsed();
-    let x = &resp.value;
+    let extraction = enrich_extraction(&source_text, resp.value.clone());
+    let x = &extraction;
     let fmatrix = friction_matrix(x);
     let count = |k: &str| x.get(k).and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0) as i32;
     let friction = x.get("friction_score").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
@@ -454,7 +641,7 @@ async fn perceive(
             n_events: count("events"),
             n_patterns: count("patterns"),
             n_contradictions: count("contradictions"),
-            extraction: resp.value.clone(),
+            extraction: extraction.clone(),
             summary,
         };
         match store.insert_perception(&sess).await {
@@ -475,7 +662,7 @@ async fn perceive(
         persisted,
         pre_canonical: pc,
         friction_matrix: fmatrix,
-        extraction: resp.value,
+        extraction,
     }))
 }
 
@@ -607,7 +794,8 @@ async fn perceive_stream(
         );
 
         t_stage = Instant::now();
-        let x = &resp.value;
+        let extraction = enrich_extraction(&source_text, resp.value.clone());
+        let x = &extraction;
         let count =
             |k: &str| x.get(k).and_then(|v| v.as_array()).map(|a| a.len()).unwrap_or(0) as i32;
         let n_actors = count("actors");
@@ -661,7 +849,7 @@ async fn perceive_stream(
                 n_events,
                 n_patterns,
                 n_contradictions,
-                extraction: resp.value.clone(),
+                extraction: extraction.clone(),
                 summary,
             };
             match store.insert_perception(&sess).await {
@@ -683,7 +871,7 @@ async fn perceive_stream(
             );
         }
 
-        let fmatrix = friction_matrix(&resp.value);
+        let fmatrix = friction_matrix(&extraction);
         emit(
             &tx,
             "result",
@@ -696,7 +884,7 @@ async fn perceive_stream(
                 "persisted": persisted,
                 "pre_canonical": pc,
                 "friction_matrix": fmatrix,
-                "extraction": resp.value,
+                "extraction": extraction,
             }),
         );
     });
@@ -728,5 +916,167 @@ async fn get_session_by_id(
         Ok(Some(sess)) => Ok(Json(serde_json::to_value(sess).unwrap())),
         Ok(None) => Err((StatusCode::NOT_FOUND, "no such session".into())),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+    }
+}
+
+async fn get_session_report_md(
+    State(s): State<Arc<AppState>>,
+    AxPath(id): AxPath<Uuid>,
+) -> Result<Response, (StatusCode, String)> {
+    let Some(store) = &s.store else {
+        return Err((StatusCode::SERVICE_UNAVAILABLE, "db not configured".into()));
+    };
+    let sess = store
+        .get_session(id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::NOT_FOUND, "no such session".into()))?;
+    let markdown = render_markdown_report(&sess);
+    Ok(([(header::CONTENT_TYPE, "text/markdown; charset=utf-8")], markdown).into_response())
+}
+
+fn render_markdown_report(sess: &Session) -> String {
+    let x = &sess.extraction;
+    let mut out = String::new();
+    out.push_str("# AGON Conflict Intelligence Report\n\n");
+    out.push_str(&format!("- Session: `{}`\n", sess.id));
+    out.push_str(&format!("- Created: `{}`\n", sess.created_at));
+    out.push_str(&format!("- Model: `{}`\n", sess.model));
+    out.push_str(&format!("- Friction score: `{}`\n", sess.friction_score));
+    out.push_str(&format!(
+        "- Primitives: `{}` actors, `{}` claims, `{}` events, `{}` commitments, `{}` contradictions\n\n",
+        count_array(x, "actors"),
+        count_array(x, "claims"),
+        count_array(x, "events"),
+        count_array(x, "commitments"),
+        count_array(x, "contradictions"),
+    ));
+
+    out.push_str("## Summary\n\n");
+    out.push_str(x.get("summary").and_then(|v| v.as_str()).unwrap_or("(no summary)"));
+    out.push_str("\n\n");
+
+    out.push_str("## Actors\n\n");
+    for actor in array(x, "actors").into_iter().flatten() {
+        let label = str_field(actor, "label").unwrap_or("unknown");
+        let kind = str_field(actor, "kind").unwrap_or("unknown");
+        out.push_str(&format!("- **{}** `{}`", label, kind));
+        if let Some(aliases) = actor.get("aliases").and_then(|v| v.as_array()) {
+            let aliases = aliases.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>();
+            if !aliases.is_empty() {
+                out.push_str(&format!(" aliases: {}", aliases.join(", ")));
+            }
+        }
+        out.push('\n');
+    }
+    out.push('\n');
+
+    out.push_str("## Contradictions\n\n");
+    let claims = claim_lookup(x);
+    if let Some(contradictions) = array(x, "contradictions") {
+        for c in contradictions {
+            let a = str_field(c, "claim_a").unwrap_or("");
+            let b = str_field(c, "claim_b").unwrap_or("");
+            out.push_str(&format!(
+                "- **{}** `{}` confidence `{}`\n",
+                str_field(c, "materiality").unwrap_or("unknown"),
+                str_field(c, "source").unwrap_or("model_suggested"),
+                c.get("confidence").and_then(|v| v.as_f64()).unwrap_or(0.5)
+            ));
+            out.push_str(&format!("  - A: {}\n", claims.get(a).map(String::as_str).unwrap_or(a)));
+            out.push_str(&format!("  - B: {}\n", claims.get(b).map(String::as_str).unwrap_or(b)));
+            if let Some(rationale) = str_field(c, "rationale") {
+                out.push_str(&format!("  - Rationale: {}\n", rationale));
+            }
+        }
+    } else {
+        out.push_str("No contradictions extracted.\n");
+    }
+    out.push('\n');
+
+    out.push_str("## Evidence Ledger\n\n");
+    if let Some(rows) = array(x, "evidence_audit") {
+        for row in rows {
+            out.push_str(&format!(
+                "- `{}` `{}` {}\n  > {}\n",
+                str_field(row, "status").unwrap_or("unknown"),
+                str_field(row, "kind").unwrap_or("primitive"),
+                str_field(row, "label").unwrap_or(""),
+                str_field(row, "quote").unwrap_or("")
+            ));
+        }
+    } else {
+        out.push_str("No evidence audit metadata available.\n");
+    }
+    out.push('\n');
+
+    out.push_str("## Source Text\n\n```text\n");
+    out.push_str(&sess.source_text);
+    out.push_str("\n```\n");
+    out
+}
+
+fn count_array(x: &serde_json::Value, key: &str) -> usize {
+    x.get(key).and_then(|v| v.as_array()).map(Vec::len).unwrap_or(0)
+}
+
+fn claim_lookup(x: &serde_json::Value) -> std::collections::HashMap<String, String> {
+    array(x, "claims")
+        .into_iter()
+        .flatten()
+        .filter_map(|claim| {
+            let id = str_field(claim, "id")?;
+            let text = str_field(claim, "text").unwrap_or(id);
+            Some((id.to_string(), text.to_string()))
+        })
+        .collect()
+}
+
+fn array<'a>(value: &'a serde_json::Value, key: &str) -> Option<&'a Vec<serde_json::Value>> {
+    value.get(key).and_then(serde_json::Value::as_array)
+}
+
+fn str_field<'a>(value: &'a serde_json::Value, key: &str) -> Option<&'a str> {
+    value.get(key).and_then(serde_json::Value::as_str).filter(|s| !s.trim().is_empty())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::enrich_extraction;
+
+    #[test]
+    fn enrichment_adds_evidence_audit() {
+        let source = "Sam: Alex agreed to own the deck.";
+        let x = serde_json::json!({
+            "actors": [{"id":"sam","label":"Sam","evidence":"Sam"}],
+            "claims": [{"id":"c1","actor_id":"sam","text":"Alex agreed to own the deck","polarity":"assert","evidence":"Alex agreed to own the deck"}],
+            "events": [],
+            "summary": "test",
+            "friction_score": 10
+        });
+        let enriched = enrich_extraction(source, x);
+        let audit = enriched.get("evidence_audit").unwrap().as_array().unwrap();
+        assert!(audit
+            .iter()
+            .any(|row| row.get("status").and_then(|v| v.as_str()) == Some("verified")));
+    }
+
+    #[test]
+    fn enrichment_adds_deterministic_denial_contradiction() {
+        let x = serde_json::json!({
+            "actors": [{"id":"sam","label":"Sam"},{"id":"alex","label":"Alex"}],
+            "claims": [
+                {"id":"c1","actor_id":"sam","text":"Alex agreed to own the deck","polarity":"assert","evidence":"Alex agreed to own the deck"},
+                {"id":"c2","actor_id":"alex","text":"I never agreed to own the deck","polarity":"deny","evidence":"never agreed to own the deck"}
+            ],
+            "events": [],
+            "contradictions": [],
+            "summary": "test",
+            "friction_score": 60
+        });
+        let enriched = enrich_extraction("x", x);
+        let contradictions = enriched.get("contradictions").unwrap().as_array().unwrap();
+        assert_eq!(contradictions.len(), 1);
+        assert_eq!(contradictions[0].get("source").and_then(|v| v.as_str()), Some("deterministic"));
     }
 }

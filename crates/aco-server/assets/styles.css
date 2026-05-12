@@ -79,6 +79,11 @@ button.primary {
 }
 button.primary:hover { background: var(--accent-2); border-color: var(--accent-2); }
 button:disabled { opacity: 0.6; cursor: wait; }
+.report-link {
+  border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px;
+  color: var(--accent-2); font: 600 13px ui-monospace, monospace;
+}
+.report-link.hidden { display: none; }
 
 .status { color: var(--muted); font-size: 13px; margin-left: 8px; }
 .status.err { color: var(--bad); }
