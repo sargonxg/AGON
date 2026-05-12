@@ -7,11 +7,15 @@ license.workspace = true
 repository.workspace = true
 description = "Semantic embedding via fastembed + HNSW for ANN."
 
+[features]
+default = []
+neural = ["dep:fastembed", "dep:hnsw_rs"]
+
 [dependencies]
 aco-core = { workspace = true }
 serde = { workspace = true }
 tracing = { workspace = true }
 anyhow = { workspace = true }
-fastembed = { workspace = true }
-hnsw_rs = { workspace = true }
+fastembed = { workspace = true, optional = true }
+hnsw_rs = { workspace = true, optional = true }
 parking_lot = { workspace = true }

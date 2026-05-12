@@ -84,7 +84,6 @@ name = "aco-infer"
 version = "0.1.0"
 dependencies = [
  "aco-core",
- "aco-embed",
  "aco-llm",
  "aco-storage",
  "anyhow",

@@ -119,14 +119,25 @@ impl LocalNeuralSensor {
 }
 
 fn supported_fastembed_models() -> Vec<String> {
-    let mut names = Vec::new();
-    if let Some(info) = fastembed::TextEmbedding::list_supported_models().first() {
-        names.push(format!("embedding:{}", info.model_code));
+    #[cfg(feature = "neural")]
+    {
+        let mut names = Vec::new();
+        if let Some(info) = fastembed::TextEmbedding::list_supported_models().first() {
+            names.push(format!("embedding:{}", info.model_code));
+        }
+        if let Some(info) = fastembed::TextRerank::list_supported_models().first() {
+            names.push(format!("reranker:{}", info.model_code));
+        }
+        names
     }
-    if let Some(info) = fastembed::TextRerank::list_supported_models().first() {
-        names.push(format!("reranker:{}", info.model_code));
+
+    #[cfg(not(feature = "neural"))]
+    {
+        vec![
+            "local_sparse".into(),
+            "fastembed optional feature available for model-backed sensors".into(),
+        ]
     }
-    names
 }
 
 fn sparse_similarity(a: &str, b: &str) -> f32 {
