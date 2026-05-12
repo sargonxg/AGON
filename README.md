@@ -22,6 +22,9 @@ It turns messy human conflict text into typed, evidence-backed primitives: actor
 
 **It is not a chatbot. It is infrastructure for conflict vision.**
 
+> ⚠️ **Experimental work in progress.** Active MVP, live demo running, breaking changes possible.
+> **Feedback, issues, PRs welcome** — see [Status & how to engage](#status--how-to-engage).
+
 ---
 
 ## What AGON does
@@ -341,11 +344,19 @@ node --check crates/aco-server/assets/app.js
 
 ---
 
-## Status
+## Status & how to engage
 
-AGON is an active MVP. The live demo works with real pasted text and persists typed records when Cloud SQL is connected. Suitable for technical demos, product exploration, and early workflow design.
+AGON is **experimental work in progress** — an active MVP. The live demo works with real pasted text and persists typed records when Cloud SQL is connected. Suitable for technical demos, product exploration, and early workflow design.
 
 **Not yet production-ready for regulated enterprise deployment.** Missing: full RBAC, tenancy boundaries, secret management for third-party user keys, formal data retention controls, compliance review.
+
+**Comments welcome — preferred channels:**
+- 💬 **[GitHub Discussions](https://github.com/sargonxg/AGON/discussions)** — ideas, questions, what to verify next
+- 🐛 **[Issues](https://github.com/sargonxg/AGON/issues)** — bugs, contradiction-rule proposals, edge cases on real text
+- 📬 **[tacitus.me](https://www.tacitus.me)** — direct contact
+- 🔀 **PRs** — golden-fixture tests required for any contradiction or extraction change; see [`ROADMAP.md`](ROADMAP.md) for priorities
+
+If you paste real conflict text and AGON misses something obvious, that's the most useful bug report you can file.
 
 ---
 
