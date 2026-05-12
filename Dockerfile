@@ -4,7 +4,7 @@ FROM rust:1.83-slim-bookworm AS builder
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      pkg-config libssl-dev ca-certificates \
+      pkg-config libssl-dev ca-certificates g++ \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy workspace + only the crates the binary needs (minimal closure).
