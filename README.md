@@ -269,6 +269,8 @@ Run locally with deterministic mock extraction:
 ```powershell
 $env:PORT="18080"
 $env:AGON_BACKEND="mock"
+$env:AGON_DEMO_USER="AGON"
+$env:AGON_DEMO_PASSWORD="AGON"
 cargo run -p aco-server --bin agon-server
 ```
 
@@ -279,6 +281,8 @@ http://127.0.0.1:18080
 User: AGON
 Password: AGON
 ```
+
+The demo workbench uses HTTP Basic Auth. Defaults remain `AGON` / `AGON` for the shared demo, but deployments can set `AGON_DEMO_USER` and `AGON_DEMO_PASSWORD` to stronger values without code changes.
 
 Run locally against Vertex AI with ADC:
 

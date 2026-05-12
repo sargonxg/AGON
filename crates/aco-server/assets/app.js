@@ -1,98 +1,155 @@
 const $ = (id) => document.getElementById(id);
 
 const SAMPLES = {
-  workplace: `HR DOSSIER — Aurora launch conflict, compiled 2026-04-15
+  workplace: `AURORA PROGRAM INVESTIGATION PACKET — compiled 2026-04-18
 
-Complaint summary from Sam Rivera:
-Sam alleges that Alex Kim accepted ownership of the Q4 launch deck content on Monday, then denied the agreement after missing the Wednesday internal deadline. Sam also alleges this is the third delivery ownership reversal in the quarter and says Alex has begun telling colleagues that Sam "sets people up to fail."
+Scope note:
+People Team opened a review after the Aurora launch program missed the executive readout deadline and two senior contributors accused each other of misrepresenting ownership. The case file combines Slack, email, manager interviews, and rebuttals. The central question is not only who owned a deck, but whether ownership commitments are being converted, denied, or weaponized after handoffs.
 
-Slack export:
+Complaint from Sam Rivera, Product Marketing Lead, filed 2026-04-12:
+Sam alleges that Alex Kim accepted ownership of the Q4 launch deck content on Monday, then denied the agreement after missing the Wednesday internal deadline. Sam says this is the third delivery ownership reversal in the quarter and that Alex has started telling colleagues Sam "sets people up to fail." Sam also alleges Mina Patel delayed design review because she relied on Alex's written commitment.
+
+Slack export, #aurora-launch:
 Sam (Mon 09:14): So we're agreed — you own the Q4 launch deck content, I handle design. Lock it in by Thursday?
 Alex (Mon 09:47): Sounds good. I'll pick it up after the Jenkins pitch.
 Mina (Mon 10:02): Great. I will hold design review until Alex sends content.
-Sam (Wed 17:02): Where are we on the deck content? Designer needs it tomorrow morning.
+Priya (Mon 10:16): Please make sure exec narrative and customer proof are in one source of truth by Wed EOD.
+Sam (Wed 17:02): Where are we on deck content? Designer needs it tomorrow morning.
 Alex (Wed 17:31): What deck content? I thought you were doing the whole thing and I'd review.
 Sam (Wed 17:45): No — Monday we agreed I do design, you do content. I have the messages.
 Alex (Thu 09:02): I never said I'd own it. Just help. You're putting this on me last minute and now blaming me for not delivering something I never agreed to.
+Mina (Thu 09:08): I paused design because I understood Alex had content. I am losing another day here.
 Sam (Thu 09:14): Alex, this is the third time this quarter. We had it in writing. I have screenshots.
 Alex (Thu 09:30): Whatever. Send what you have, I'll finish it tonight. But we need to talk about how you set me up to fail.
 
-Email from Mina to Sam and Alex, Wed 18:10:
-"The design review was moved because content was not ready. I understood from Monday's thread that Alex owned copy/content and Sam owned layout. If that changed, I was not told."
+Email from Mina Patel to Sam, Alex, and Priya, Wed 18:10:
+"The design review was moved because content was not ready. I understood from Monday's thread that Alex owned copy/content and Sam owned layout. If that changed, I was not told. I need one named owner because design cannot keep restarting from partial drafts."
 
-Manager interview, Priya Shah, 2026-04-12:
-Priya says Alex reported feeling "publicly blamed" by Sam. Priya also says Sam escalated to her only after the missed Wednesday checkpoint. Priya denies telling Alex that Sam was responsible for the full deck.
+Manager interview, Priya Shah, 2026-04-13:
+Priya says Alex reported feeling "publicly blamed" by Sam. Priya also says Sam escalated to her only after the missed Wednesday checkpoint. Priya denies telling Alex that Sam was responsible for the full deck. Priya confirms she wrote "exec narrative and customer proof" in Slack but says she did not assign that work to either Alex or Sam directly. Priya says the team has begun copying her on routine handoffs, which she reads as a sign of collapsing trust.
 
-Alex response, 2026-04-13:
-"I agreed to help after Jenkins, not to own the entire content package. Sam routinely converts casual help into formal ownership after the fact. Mina's note reflects her assumption, not my commitment. I said I would finish it Thursday night to stop the escalation, not because I accepted blame."
+Interview with Mina Patel, 2026-04-14:
+Mina says she relied on the Monday exchange and put two designers on a different account because she expected content by Thursday. Mina says the dispute is affecting downstream capacity. Mina does not believe Sam invented the commitment, but she also says Alex often uses "I'll pick it up" to mean review, not ownership. Mina says the phrase "you own" was Sam's phrase, while "sounds good" was Alex's acceptance.
 
-Sam rebuttal, 2026-04-14:
-"Alex's distinction between help and ownership is new. The phrase 'you own the Q4 launch deck content' was explicit. Alex said 'sounds good.' Mina also relied on that. This is not public blame; it is accountability for a written commitment."`,
+Alex response, 2026-04-15:
+"I agreed to help after Jenkins, not to own the entire content package. Sam routinely converts casual help into formal ownership after the fact. Mina's note reflects her assumption, not my commitment. I said I would finish it Thursday night to stop the escalation, not because I accepted blame. Priya had asked for one source of truth, not for me to become the owner. Sam escalated after sitting on an empty deck for two days."
 
-  coparenting: `Jordan (Fri 18:22): Just confirming — I have Mia from Wednesday to Sunday next week, you have her the following week.
-Riley (Fri 18:40): That works. Pickup at 4:30 like usual.
-Riley (Tue 09:11): Hey, I'm running 20 min late tomorrow. Can you keep her till 5?
-Jordan (Tue 09:14): No, I have a meeting at 5:15 I told you about three weeks ago.
-Riley (Tue 09:16): You always do this. Make it impossible.
-Jordan (Tue 09:18): I'm not making anything impossible. I have a meeting. Reschedule with someone else this once.
-Riley (Tue 09:25): Forget it. I'll come at 4:30 like I should have said in the first place. But this is exactly why the kids think you're rigid.
-Jordan (Tue 09:30): Don't put what the kids think on me. We can disagree without dragging them in.
-Riley (Wed 16:55): At the door — Mia ready?
-Jordan (Wed 16:56): Yes. She has her math book and the green sweater she wanted.`,
+Sam rebuttal, 2026-04-16:
+"Alex's distinction between help and ownership is new. The phrase 'you own the Q4 launch deck content' was explicit. Alex said 'sounds good.' Mina also relied on that. This is not public blame; it is accountability for a written commitment. Alex now says I sat on an empty deck, but the working file shows layout and outline were complete on Tuesday at 15:20."
 
-  board: `BOARD MINUTES — Q1 (March 18, 2025)
-The Chair opened by confirming the strategic pivot toward commercial customers had been approved unanimously at the October retreat.
-Director Park observed that the retreat had produced no formal resolution on customer segment.
-Director Ito moved to ratify the pivot retroactively; motion seconded by Director Chen.
-Director Park objected: "We cannot retroactively manufacture a vote we did not take."
-The Chair tabled the motion pending review of the October minutes.
+Document note:
+The working file history shows Sam created sections on Tuesday at 15:20, Mina entered comments Thursday at 11:05, and Alex added final narrative Thursday at 21:44. The final deck shipped Friday morning with an apology from Priya to Sales for the delay.`,
 
-BOARD MINUTES — Q2 (June 12, 2025)
-The Chair reported that Q1 results were ahead of plan.
-Director Ito noted the agenda would be distributed 72 hours in advance, consistent with the new governance protocol.
-Director Park stated she had received the pack the morning of, and asked whether the 72-hour rule applied uniformly.
-The Chair responded that the rule was directional, not binding.
-Director Park noted for the record that she objected to a directional reading of a written protocol.`,
+  legal: `VENDOR EXCEPTION CASE FILE — deposition, email, finance notes, and Slack, March 2026
 
-  commercial: `Vendor: We cannot move below the list price. It's a matter of principle at this stage of the quarter.
-Buyer: Then we will have to shelve the rollout. We committed internally to a per-seat cost ceiling and I cannot go above it.
-Vendor: A pilot could be structured differently. Smaller footprint, executive visibility, an expansion option.
-Buyer: Our board wants to see credible traction in this category before the next funding round.
-Vendor: Let me be candid — if we discount this deal, every Q4 deal gets pulled in for the same treatment. That's our actual concern.
-Buyer: And if we go above ceiling, our procurement team's authority is undermined for the next two cycles. Same shape of problem.
-Vendor: So we both need cover. What if the pilot price is at list but the expansion clause renegotiates from a lower base?
-Buyer: That could work. Get me the paper by end of week.`,
+Issue:
+The company granted a non-standard vendor exception that bypassed the ordinary finance queue. The witness, Nick Hart, testified that finance had approved the exception before he saw it. Emails and Slack messages suggest a different sequence. Legal wants a contradiction map, not a prose summary.
 
-  diplomatic: `Press briefing, Foreign Ministry of State A (2026-02-03):
-The Spokesperson reiterated that State A will not accept any unilateral demarcation of the maritime boundary.
-A question on whether consultations with State B had resumed was declined.
-The Spokesperson added that cooperation with State C on fisheries remains "unaffected by recent tensions".
-
-Cable, Mission of State B (2026-02-05):
-State B's Deputy Permanent Representative stated in the corridor that "technical contacts have continued throughout" and characterized State A's posture as "rhetorical".
-The DPR declined to confirm a date for the next political-level meeting.
-
-Op-ed, retired State A diplomat (2026-02-07):
-The maritime claim is settled in international law. Any negotiation that proceeds from a contrary premise legitimises the contrary premise. Therefore there is no negotiation to be had.`,
-
-  hr: `HR INTAKE NOTE — formal complaint filed by C. Reyes against M. Patel (manager), filed 2026-04-02.
-Reyes alleges: (i) Patel removed her from the Aurora project on March 14 after she raised concerns about timeline feasibility on March 11; (ii) Patel told colleagues in a 1:1 that Reyes "isn't a team player"; (iii) Patel cancelled her promotion review without notice.
-Patel response (interview 2026-04-09): "I removed Reyes from Aurora because she had begun to escalate to my skip-level without notifying me. The timeline feedback was not the trigger. The 'not a team player' comment was made in confidence and reflects a pattern of bypass behaviour. I postponed not cancelled her review; the postponement was discussed."
-Reyes rebuttal (interview 2026-04-12): "I escalated to skip-level because Patel had not responded to two written concerns about Aurora's scope. The skip-level escalation happened on March 13, the day before removal. The 'pattern of bypass' framing reverses cause and effect."
-HR observation: Records show two unread emails from Reyes to Patel dated March 6 and March 9 (subjects: 'Aurora — scope risk').`,
-
-  legal: `Deposition of N. Hart, 2026-03-18:
+Deposition of Nick Hart, VP Operations, 2026-03-18:
 Q: Did you approve the vendor exception before finance reviewed it?
 A: No. Finance had already signed off before I saw the request.
+Q: Who told Legal the exception was approved?
+A: I believe Finance did. I would not have represented approval if it had not happened.
+Q: Did you ask Finance to hold review?
+A: I do not recall asking Finance to hold anything. My practice is to let Finance run its process.
+Q: Did you tell Lena Ortiz on March 14 that approval was already complete?
+A: I do not remember that conversation. If I said it, I would have been referring to preliminary comfort, not formal approval.
 
-Email from N. Hart to Finance, 2026-03-14 09:22:
-"Please hold the review until I confirm with Lena. We may need to route this outside the standard queue."
+Email from Nick Hart to Finance, 2026-03-14 09:22:
+"Please hold the review until I confirm with Lena. We may need to route this outside the standard queue. Do not issue approval until I come back with the commercial context."
 
 Finance reply, 2026-03-14 11:03:
-"Understood. No approval has been issued yet."
+"Understood. No approval has been issued yet. We will wait for your confirmation before routing."
 
-Lena Slack message, 2026-03-14 13:48:
-"Nick told me it was approved this morning and that legal could paper it later."`
+Slack, Lena Ortiz to Legal Ops, 2026-03-14 13:48:
+"Nick told me it was approved this morning and that Legal could paper it later. He said Finance was aligned but did not want to own the exception because the vendor is strategic."
+
+Legal Ops note, 2026-03-14 16:10:
+Lena asked whether Legal could prepare an exception letter without a finance approval ID. Legal Ops answered that the process requires approval first, unless the CFO grants an override.
+
+CFO calendar note, 2026-03-15 08:30:
+"Nick/Lena vendor exception — commercial pressure, no paper trail yet, need clean story before Monday."
+
+Finance memorandum, 2026-03-16:
+Finance states that approval was issued on March 16 at 12:04 after CFO review. The memo says Finance did not approve the exception on March 14 and did not authorize Legal to paper the exception before approval.
+
+Nick Hart errata draft, unsent, 2026-03-19:
+"My deposition answer should have distinguished formal approval from commercial alignment. I understood Finance was likely to approve, but formal approval may have been issued later."
+
+Legal review note:
+The contradiction may turn on whether Hart used "approved" to mean formal approval, preliminary comfort, or commercial alignment. The source chain also raises a process-control question: Hart told Finance to hold review, then allegedly told Lena that Finance was aligned.`,
+
+  board: `BOARD GOVERNANCE DISPUTE — minutes, correspondence, and director objections
+
+Background:
+The board is disputing whether a strategic pivot toward commercial customers was validly approved at an October retreat, whether a later Q1 vote retroactively ratified the pivot, and whether the 72-hour board-pack rule is binding. Director Park argues process was manufactured after the fact. The Chair argues the board had practical consensus and Park is using process to relitigate strategy.
+
+October Retreat Notes, 2025-10-19:
+The Chair summarized three strategic options: enterprise commercial expansion, public-sector consolidation, and hybrid managed services. No formal resolution was read into the record. Director Ito stated that commercial expansion had "the clearest operating leverage." Director Park warned that the company lacked sales capacity for a commercial pivot and asked that any decision be deferred until the December budget session. The Chair closed by saying, "Management has enough directional support to model the commercial path."
+
+Email from Director Park to the Chair, 2025-10-21:
+"I want to be explicit that I did not vote for a commercial pivot at the retreat. I agreed management could model it. Please do not describe that as authorization."
+
+Chair reply, 2025-10-22:
+"Understood. I will describe it as directional support unless and until we take a formal vote."
+
+BOARD MINUTES — Q1, March 18, 2026:
+The Chair opened by confirming that the strategic pivot toward commercial customers had been approved unanimously at the October retreat. Director Park objected that the retreat had produced no formal resolution on customer segment. Director Ito moved to ratify the pivot retroactively; motion seconded by Director Chen. Director Park objected: "We cannot retroactively manufacture a vote we did not take." The Chair tabled the motion pending review of the October notes.
+
+Board Secretary draft note, March 20, 2026:
+"Minutes should avoid saying unanimous approval if October record shows directional support only. Recommendation: state that management interpreted the retreat as authorization and that at least one director disputes that interpretation."
+
+BOARD MINUTES — Q2, June 12, 2026:
+The Chair reported that Q1 results were ahead of plan. Director Ito noted the agenda would be distributed 72 hours in advance, consistent with the new governance protocol. Director Park stated she had received the pack the morning of the meeting and asked whether the 72-hour rule applied uniformly. The Chair responded that the rule was directional, not binding. Director Park noted for the record that she objected to a directional reading of a written protocol.
+
+Email from Director Chen to the Chair, June 13, 2026:
+"Park is technically right on the packet timing. We keep calling written procedures directional when they become inconvenient. That creates avoidable process risk."
+
+Chair memo to Governance Committee, June 15, 2026:
+"The commercial pivot has operational momentum and should not be held hostage to semantics. Park's objections are procedurally framed but substantively strategic. We need a clean ratification vote, but the company should not imply that management acted without board support."
+
+Director Park memo, June 16, 2026:
+"This is not semantics. The record shows a repeated pattern: directional discussion is later treated as authorization, written protocol is later treated as optional, and dissent is later characterized as strategy disagreement. That pattern undermines board governance."`,
+
+  commercial: `ENTERPRISE RENEWAL NEGOTIATION — pricing, expansion, procurement authority, and face-saving
+
+Context:
+Atlas Cloud is negotiating renewal and expansion with Northstar Retail. The vendor needs a visible Q4 expansion logo. The buyer has a board-imposed per-seat ceiling and a procurement team worried about losing authority. The dispute looks like price, but the hidden friction is governance, precedent, and internal cover.
+
+Call transcript, 2026-04-03:
+Vendor AE Maya: We cannot move below list price on the expansion seats. It is a matter of principle at this stage of the quarter.
+Buyer CIO Daniel: Then we will have to shelve the rollout. We committed internally to a per-seat cost ceiling and I cannot go above it.
+Maya: A pilot could be structured differently. Smaller footprint, executive visibility, expansion option.
+Daniel: Our board wants credible traction in this category before the next funding round. A tiny pilot reads as hesitation.
+Maya: Let me be candid. If we discount this deal, every Q4 deal gets pulled in for the same treatment. That is our actual concern.
+Daniel: And if we go above ceiling, procurement's authority is undermined for the next two cycles. Same shape of problem.
+Maya: So we both need cover. What if the pilot price is at list but the expansion clause renegotiates from a lower base?
+Daniel: That could work if procurement can say it preserved the ceiling.
+
+Email from Northstar Procurement, 2026-04-04:
+"The proposed list-price pilot is not acceptable if the commercial intent is already full rollout. We cannot endorse a structure that disguises expansion economics as a pilot. The board ceiling applies to the effective rollout price, not only to the first invoice."
+
+Internal Slack, Atlas Sales, 2026-04-04:
+Maya: Northstar procurement is blocking the pilot idea. They think it is a disguised discount.
+VP Sales: We need the expansion in Q4. Do not put a discount in the order form. Use service credits if needed.
+Maya: Credits may still count as economics.
+VP Sales: They count only if procurement notices. Keep Legal out until we have business alignment.
+
+Email from Atlas Legal, 2026-04-05:
+"Please do not use side credits to alter effective price without reflecting them in the commercial summary. If credits are contingent on expansion, they are part of the economics and must be reviewed."
+
+Northstar CFO note, 2026-04-06:
+"Daniel can accept a phased rollout if procurement can show the effective price does not breach the board ceiling. We need vendor paper that does not embarrass the board process."
+
+Follow-up call, 2026-04-07:
+Daniel: Legal caught the service credit issue on your side. We need something cleaner.
+Maya: We can do list price for pilot, board-approved expansion discount triggered only after security milestone, and a public reference commitment from Northstar.
+Daniel: Reference commitment has value to you, not to procurement.
+Maya: Correct. It gives us internal cover to justify lower expansion economics without calling it a pure discount.
+Daniel: Send the paper. If procurement can explain it as milestone-based and the board ceiling is preserved, I can support it.
+
+Open question:
+Both sides deny trying to evade process, but both are searching for language that preserves authority while changing economics. The friction is less adversarial than structural: each party needs a defensible story for a different internal audience.`
 };
 
 (async function init() {
@@ -295,6 +352,8 @@ function render(x) {
   $('n-patterns').textContent = (x.patterns || []).length;
   $('n-contras').textContent = (x.contradictions || []).length;
   $('summary').textContent = x.summary || '(no summary)';
+  renderCaseTelemetry(x);
+  renderChannelBars(x);
   renderLens(x);
 
   $('actors').innerHTML = (x.actors || []).map(a => `
@@ -377,6 +436,11 @@ function render(x) {
   renderEscalation(x);
   renderResolution(x);
   renderEvidenceLedger(x);
+  renderEvidenceCoverage(x);
+  renderTimeline(x);
+  renderInferenceStack(x);
+  renderActorLanes(x);
+  drawRelationshipMap(x);
 
   $('raw').textContent = JSON.stringify(x, null, 2);
   drawGraph(x);
@@ -408,6 +472,183 @@ function renderLens(x) {
     <div class="lens-section">
       <h4>Review questions</h4>
       ${(questions.length ? questions : ['What additional source text would reduce uncertainty?']).map(q => `<div class="item compact">${esc(q)}</div>`).join('')}
+    </div>
+  `;
+}
+
+function renderCaseTelemetry(x) {
+  const el = $('case-telemetry');
+  if (!el) return;
+  const p = x.document_profile || {};
+  const counts = [
+    ['actors', (x.actors || []).length],
+    ['claims', (x.claims || []).length],
+    ['events', (x.events || []).length],
+    ['commitments', (x.commitments || []).length],
+    ['relationships', (x.relationships || []).length],
+    ['evidence quotes', countEvidenceQuotes(x)]
+  ];
+  el.innerHTML = `
+    <div class="telemetry-grid">
+      ${counts.map(([k, v]) => `<div><span>${esc(k)}</span><strong>${v}</strong></div>`).join('')}
+    </div>
+    <div class="mini-read">
+      <span class="tag">${esc(p.format || 'unknown')}</span>
+      <span class="tag ${Number(p.conflict_density || 0) > 0.45 ? 'high' : Number(p.conflict_density || 0) > 0.2 ? 'med' : 'low'}">density ${Number(p.conflict_density || 0).toFixed(2)}</span>
+      <span class="tag">${(p.temporal_markers || []).length} temporal markers</span>
+      <span class="tag">${(p.modality_markers || []).length} modality markers</span>
+    </div>
+  `;
+}
+
+function renderChannelBars(x) {
+  const el = $('channel-bars');
+  if (!el) return;
+  const channels = [
+    ['claim pressure', (x.claims || []).length],
+    ['contradiction', (x.contradictions || []).length * 3],
+    ['commitment risk', (x.commitments || []).filter(c => ['contested', 'broken', 'unclear'].includes(String(c.status || '').toLowerCase())).length * 2],
+    ['relationship pressure', (x.relationships || []).length],
+    ['escalation', (x.escalation_signals || []).reduce((s, e) => s + Number(e.intensity || 1), 0)],
+    ['unresolved evidence', unresolvedEvidenceRows(x).length * 2]
+  ];
+  const max = Math.max(1, ...channels.map(([, v]) => v));
+  el.innerHTML = channels.map(([label, value]) => {
+    const pct = Math.max(4, Math.round((value / max) * 100));
+    return `
+      <div class="bar-row">
+        <span>${esc(label)}</span>
+        <div><i style="width:${pct}%"></i></div>
+        <b>${Number(value).toFixed(value % 1 ? 1 : 0)}</b>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderTimeline(x) {
+  const el = $('timeline');
+  if (!el) return;
+  const events = [
+    ...(x.events || []).map(e => ({ kind: 'event', when: e.when || '', label: e.label || e.id, evidence: e.evidence })),
+    ...(x.commitments || []).filter(c => c.deadline).map(c => ({ kind: 'commitment', when: c.deadline, label: c.subject, evidence: c.evidence })),
+  ];
+  events.sort((a, b) => String(a.when).localeCompare(String(b.when)));
+  el.innerHTML = events.length ? events.slice(0, 14).map(e => `
+    <div class="timeline-row">
+      <span class="when">${esc(e.when || 'undated')}</span>
+      <div>
+        <span class="tag">${esc(e.kind)}</span>
+        <strong>${esc(e.label)}</strong>
+        ${e.evidence ? `<em>"${esc(e.evidence)}"</em>` : ''}
+      </div>
+    </div>
+  `).join('') : '<div class="meta">no dated events or deadlines extracted</div>';
+}
+
+function renderInferenceStack(x) {
+  const el = $('inference-stack');
+  if (!el) return;
+  const findings = x.inferences || [];
+  const gates = x.quality_gates || [];
+  const neural = x.neural_signals?.signals || [];
+  const questions = x.review_questions || [];
+  el.innerHTML = `
+    <div class="stack-metrics">
+      <div><span>findings</span><strong>${findings.length}</strong></div>
+      <div><span>gates</span><strong>${gates.length}</strong></div>
+      <div><span>signals</span><strong>${neural.length}</strong></div>
+      <div><span>questions</span><strong>${questions.length}</strong></div>
+    </div>
+    ${findings.slice(0, 6).map(f => `
+      <div class="item compact">
+        <span class="tag ${heat(Number(f.confidence || f.score || 0))}">${esc(f.kind || 'finding')}</span>
+        <span class="lbl">${esc(f.label || f.summary || 'inference')}</span>
+        <div class="meta">${esc(f.rationale || f.explanation || '')}</div>
+      </div>
+    `).join('') || '<div class="meta">no deterministic inference findings emitted for this case</div>'}
+  `;
+}
+
+function renderActorLanes(x) {
+  const el = $('actor-lanes');
+  if (!el) return;
+  const actors = x.actors || [];
+  el.innerHTML = actors.length ? actors.map(a => {
+    const claims = (x.claims || []).filter(c => c.actor_id === a.id);
+    const commitments = (x.commitments || []).filter(c => c.by_actor === a.id || c.to_actor === a.id);
+    const rels = (x.relationships || []).filter(r => r.from_actor === a.id || r.to_actor === a.id);
+    const escalations = (x.escalation_signals || []).filter(e => e.actor_id === a.id);
+    return `
+      <div class="lane">
+        <div class="lane-head">
+          <strong>${esc(a.label || a.id)}</strong>
+          ${a.role ? `<span class="tag">${esc(a.role)}</span>` : ''}
+        </div>
+        <div class="lane-counts">
+          <span>${claims.length} claims</span>
+          <span>${commitments.length} commitments</span>
+          <span>${rels.length} relationships</span>
+          <span>${escalations.length} escalations</span>
+        </div>
+        ${claims.slice(0, 3).map(c => `<div class="mini-claim">${esc(trunc(c.text, 130))}</div>`).join('')}
+      </div>
+    `;
+  }).join('') : '<div class="meta">no actors extracted</div>';
+}
+
+function drawRelationshipMap(x) {
+  const svg = $('relationship-map');
+  if (!svg) return;
+  svg.innerHTML = '';
+  const actors = x.actors || [];
+  if (!actors.length) return;
+  const W = 1200, H = 360, cx = W / 2, cy = H / 2, r = Math.min(W, H) * 0.36;
+  const pos = {};
+  actors.forEach((a, i) => {
+    const ang = (i / actors.length) * Math.PI * 2 - Math.PI / 2;
+    pos[a.id] = { x: cx + Math.cos(ang) * r, y: cy + Math.sin(ang) * r, label: a.label || a.id };
+  });
+  const rels = x.relationships || [];
+  const contraPairs = (x.contradictions || []).map(c => {
+    const ca = (x.claims || []).find(cl => cl.id === c.claim_a);
+    const cb = (x.claims || []).find(cl => cl.id === c.claim_b);
+    return ca?.actor_id && cb?.actor_id ? { from_actor: ca.actor_id, to_actor: cb.actor_id, type: 'contradiction', weight: 3 } : null;
+  }).filter(Boolean);
+  for (const rel of [...rels, ...contraPairs]) {
+    const a = pos[rel.from_actor], b = pos[rel.to_actor];
+    if (!a || !b || rel.from_actor === rel.to_actor) continue;
+    const line = svgEl('line', { x1: a.x, y1: a.y, x2: b.x, y2: b.y });
+    line.setAttribute('class', `rel-line ${String(rel.type || '').toLowerCase().includes('contrad') ? 'contradict' : ''}`);
+    line.setAttribute('stroke-width', Math.min(5, Math.max(1.5, Number(rel.weight || 1.5))));
+    svg.appendChild(line);
+  }
+  for (const a of actors) {
+    const p = pos[a.id];
+    const c = svgEl('circle', { cx: p.x, cy: p.y, r: 18 });
+    c.setAttribute('class', 'rel-node');
+    svg.appendChild(c);
+    const t = svgEl('text', { x: p.x, y: p.y + 36, 'text-anchor': 'middle' });
+    t.textContent = trunc(p.label, 22);
+    svg.appendChild(t);
+  }
+}
+
+function renderEvidenceCoverage(x) {
+  const el = $('evidence-coverage');
+  if (!el) return;
+  const rows = allEvidenceRows(x);
+  const verified = rows.filter(r => r.verified).length;
+  const unresolved = rows.length - verified;
+  const pct = rows.length ? Math.round((verified / rows.length) * 100) : 0;
+  const unresolvedRows = rows.filter(r => !r.verified).slice(0, 8);
+  el.innerHTML = `
+    <div class="coverage-ring" style="--pct:${pct}">
+      <strong>${pct}%</strong><span>verified</span>
+    </div>
+    <div class="coverage-detail">
+      <span class="tag low">${verified} verified</span>
+      <span class="tag material">${unresolved} unresolved</span>
+      ${unresolvedRows.map(r => `<div class="meta">unresolved ${esc(r.kind)} · ${esc(trunc(r.label, 120))}</div>`).join('')}
     </div>
   `;
 }
@@ -649,6 +890,41 @@ function renderEvidenceLedger(x) {
       <span class="ev">"${esc(r.quote)}"</span>
     </div>
   `).join('') : '<div class="meta">no evidence quotes returned</div>';
+}
+
+function allEvidenceRows(x) {
+  const source = $('text').value || '';
+  const rows = [];
+  if (Array.isArray(x.evidence_audit)) {
+    return x.evidence_audit.map(r => ({
+      kind: r.kind || 'evidence',
+      label: r.label || r.id || '',
+      quote: r.quote || '',
+      verified: r.status === 'verified'
+    }));
+  }
+  const push = (kind, label, quote) => {
+    if (!quote) return;
+    rows.push({ kind, label: label || '', quote, verified: source.includes(quote) });
+  };
+  (x.actors || []).forEach(a => push('actor', a.label || a.id, a.evidence));
+  (x.claims || []).forEach(c => push('claim', c.text, c.evidence));
+  (x.events || []).forEach(e => push('event', e.label, e.evidence));
+  (x.commitments || []).forEach(c => push('commitment', c.subject, c.evidence));
+  (x.patterns || []).forEach(p => push('pattern', p.kind, p.evidence));
+  (x.relationships || []).forEach(r => push('relationship', r.type, r.evidence));
+  (x.power_dynamics || []).forEach(p => push('power', p.basis, p.evidence));
+  (x.escalation_signals || []).forEach(e => push('escalation', e.trigger, e.evidence));
+  (x.resolution_opportunities || []).forEach(o => push('resolution', o.opening, o.evidence));
+  return rows;
+}
+
+function countEvidenceQuotes(x) {
+  return allEvidenceRows(x).length;
+}
+
+function unresolvedEvidenceRows(x) {
+  return allEvidenceRows(x).filter(r => !r.verified);
 }
 
 function evidenceBadge(quote) {

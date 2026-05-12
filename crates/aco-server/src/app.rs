@@ -112,12 +112,14 @@ pub fn build_app(state: Arc<AppState>) -> Router {
 }
 
 async fn require_demo_auth(req: Request<Body>, next: Next) -> Result<Response, Response> {
-    const EXPECTED: &str = "Basic QUdPTjpBR09O";
+    let user = std::env::var("AGON_DEMO_USER").unwrap_or_else(|_| "AGON".into());
+    let password = std::env::var("AGON_DEMO_PASSWORD").unwrap_or_else(|_| "AGON".into());
+    let expected = format!("Basic {}", base64_simple(format!("{user}:{password}").as_bytes()));
     let allowed = req
         .headers()
         .get(header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
-        .map(|v| v == EXPECTED)
+        .map(|v| constant_time_eq(v.as_bytes(), expected.as_bytes()))
         .unwrap_or(false);
 
     if allowed {
@@ -130,6 +132,40 @@ async fn require_demo_auth(req: Request<Body>, next: Next) -> Result<Response, R
         )
             .into_response())
     }
+}
+
+fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut diff = 0u8;
+    for (x, y) in a.iter().zip(b.iter()) {
+        diff |= x ^ y;
+    }
+    diff == 0
+}
+
+fn base64_simple(input: &[u8]) -> String {
+    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(input.len().div_ceil(3) * 4);
+    for chunk in input.chunks(3) {
+        let b0 = chunk[0];
+        let b1 = *chunk.get(1).unwrap_or(&0);
+        let b2 = *chunk.get(2).unwrap_or(&0);
+        out.push(TABLE[(b0 >> 2) as usize] as char);
+        out.push(TABLE[(((b0 & 0b0000_0011) << 4) | (b1 >> 4)) as usize] as char);
+        if chunk.len() > 1 {
+            out.push(TABLE[(((b1 & 0b0000_1111) << 2) | (b2 >> 6)) as usize] as char);
+        } else {
+            out.push('=');
+        }
+        if chunk.len() > 2 {
+            out.push(TABLE[(b2 & 0b0011_1111) as usize] as char);
+        } else {
+            out.push('=');
+        }
+    }
+    out
 }
 
 async fn index() -> impl IntoResponse {

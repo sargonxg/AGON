@@ -10,7 +10,7 @@
 <header>
   <div class="brand">
     <div class="logo">AGON</div>
-    <div class="tagline">Evidence-backed conflict intelligence · <span id="backend">…</span></div>
+    <div class="tagline">Evidence-backed conflict intelligence · protected workbench · <span id="backend">…</span></div>
   </div>
   <nav><a href="https://github.com/sargonxg/AGON" target="_blank" rel="noopener">github</a><span class="dot">·</span><a href="/readyz">status</a></nav>
 </header>
@@ -19,32 +19,29 @@
   <section class="intake">
     <div class="hero-grid">
       <div>
-        <p class="eyebrow">Rust conflict primitive engine</p>
-        <h1>Drop messy human conflict text. AGON exposes the structure.</h1>
-        <p class="lede">Workplace investigations, mediation files, negotiation logs, complaints, depositions, and email threads become actors, claims, commitments, contradictions, friction, and evidence spans. The point is not summary. The point is auditable conflict intelligence.</p>
+        <p class="eyebrow">Rust conflict vision engine</p>
+        <h1>Map the human friction inside messy case text.</h1>
+        <p class="lede">Workplace investigations, legal packets, negotiations, and governance disputes become actors, claims, commitments, contradictions, timeline pressure, relationship tension, quality gates, and evidence spans. The point is not summary. The point is auditable conflict intelligence.</p>
       </div>
       <div class="capability-board">
         <div><strong>Trust core</strong><span>quote-first primitives</span></div>
-        <div><strong>Identity</strong><span>conservative alias fusion</span></div>
-        <div><strong>Friction</strong><span>actor x actor pressure</span></div>
-        <div><strong>Audit</strong><span>verified vs unresolved evidence</span></div>
+        <div><strong>Friction graph</strong><span>actor pressure + drivers</span></div>
+        <div><strong>Case lens</strong><span>timeline, gates, inferences</span></div>
+        <div><strong>Access</strong><span>Basic Auth + env secrets</span></div>
       </div>
     </div>
 
-    <textarea id="text" placeholder="Paste 2–10 paragraphs of conflict text here. Example: a message thread, a board minutes excerpt, a deposition snippet, a co-parenting WhatsApp transcript…"></textarea>
+    <textarea id="text" placeholder="Paste real conflict material: complaint packets, interviews, email chains, depositions, board minutes, negotiation logs, or mediation notes."></textarea>
 
     <div class="controls">
       <span class="picker">
         <label>sample</label>
         <select id="sample-select">
           <option value="">— choose —</option>
-          <option value="workplace">workplace · aurora investigation dossier</option>
-          <option value="coparenting">family · co-parenting pickup</option>
-          <option value="board">governance · q1/q2 board minutes</option>
-          <option value="commercial">commercial · vendor pricing</option>
-          <option value="diplomatic">diplomatic · maritime boundary</option>
-          <option value="hr">workplace · hr complaint</option>
-          <option value="legal">legal · deposition contradiction</option>
+          <option value="workplace">workplace · aurora investigation packet</option>
+          <option value="legal">legal · vendor exception deposition</option>
+          <option value="board">governance · board process dispute</option>
+          <option value="commercial">commercial · enterprise renewal negotiation</option>
         </select>
       </span>
       <span class="picker">
@@ -92,6 +89,16 @@
         <h3>Executive conflict read</h3>
         <p id="summary"></p>
       </div>
+      <div class="overview-grid">
+        <div class="panel">
+          <h3>Case telemetry</h3>
+          <div id="case-telemetry" class="telemetry"></div>
+        </div>
+        <div class="panel">
+          <h3>Conflict channels</h3>
+          <div id="channel-bars" class="channel-bars"></div>
+        </div>
+      </div>
       <div class="panel wide">
         <h3>Conflict vision lens</h3>
         <div id="lens" class="lens"></div>
@@ -106,6 +113,16 @@
           <span class="dot commitment"></span>commitment
           <span class="dot interest"></span>interest
           <span style="margin-left:auto;color:var(--muted);">edges: ASSERTED · COMMITS_TO · HOLDS_INTEREST · <span style="color:var(--bad)">CONTRADICTS</span></span>
+        </div>
+      </div>
+      <div class="overview-grid">
+        <div class="panel">
+          <h3>Case timeline</h3>
+          <div id="timeline" class="timeline"></div>
+        </div>
+        <div class="panel">
+          <h3>Inference stack</h3>
+          <div id="inference-stack"></div>
         </div>
       </div>
     </div>
@@ -127,6 +144,14 @@
         <div class="panel">
           <h3>Relationships</h3>
           <div id="relationships"></div>
+        </div>
+        <div class="panel wide">
+          <h3>Actor lanes</h3>
+          <div id="actor-lanes" class="actor-lanes"></div>
+        </div>
+        <div class="panel wide">
+          <h3>Relationship map</h3>
+          <svg id="relationship-map" viewBox="0 0 1200 360" preserveAspectRatio="xMidYMid meet"></svg>
         </div>
       </div>
     </div>
@@ -186,6 +211,10 @@
         <div class="panel">
           <h3>Evidence ledger</h3>
           <div id="evidence-ledger"></div>
+        </div>
+        <div class="panel wide">
+          <h3>Evidence coverage</h3>
+          <div id="evidence-coverage" class="evidence-coverage"></div>
         </div>
       </div>
     </div>
