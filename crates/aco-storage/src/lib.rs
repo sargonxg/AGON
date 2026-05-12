@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{PgPool, Postgres, Row, Transaction};
+use std::collections::HashMap;
 use std::time::Duration;
 use thiserror::Error;
 use uuid::Uuid;
@@ -244,6 +245,7 @@ async fn insert_typed_perception_tx(
     let mut n_evidence_spans = 0;
     let mut n_claims = 0;
     let mut n_contradictions = 0;
+    let mut claim_lookup = HashMap::new();
 
     if let Some(actors) = array(&s.extraction, "actors") {
         for actor in actors {
@@ -299,6 +301,8 @@ async fn insert_typed_perception_tx(
                 .unwrap_or_else(|| str_field(claim, "text").unwrap_or("claim"));
             let text = str_field(claim, "text").unwrap_or("");
             let claim_id = stable_external_id("claim", raw_id, text);
+            remember_claim_ref(&mut claim_lookup, raw_id, &claim_id);
+            remember_claim_ref(&mut claim_lookup, text, &claim_id);
             let evidence_id = insert_evidence_span(
                 tx,
                 s.id,
@@ -484,17 +488,25 @@ async fn insert_typed_perception_tx(
             let Some(claim_b_raw) = str_field(contradiction, "claim_b") else {
                 continue;
             };
-            let claim_a = stable_external_id("claim", claim_a_raw, claim_a_raw);
-            let claim_b = stable_external_id("claim", claim_b_raw, claim_b_raw);
+            let Some(claim_a) = resolve_claim_ref(&claim_lookup, claim_a_raw) else {
+                continue;
+            };
+            let Some(claim_b) = resolve_claim_ref(&claim_lookup, claim_b_raw) else {
+                continue;
+            };
             let contradiction_id =
                 deterministic_id("contradiction", &format!("{claim_a}:{claim_b}"));
+            let source = str_field(contradiction, "source").unwrap_or("model_suggested");
+            let confidence = contradiction.get("confidence").and_then(Value::as_f64).unwrap_or(0.5);
             sqlx::query(
                 r#"
                 INSERT INTO contradictions
                     (id, session_id, claim_a, claim_b, materiality, source, confidence, rationale, raw_json)
-                VALUES ($1, $2, $3, $4, $5, 'model_suggested', 0.5, $6, $7)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 ON CONFLICT (id) DO UPDATE SET
                     materiality = EXCLUDED.materiality,
+                    source = EXCLUDED.source,
+                    confidence = EXCLUDED.confidence,
                     rationale = EXCLUDED.rationale,
                     raw_json = EXCLUDED.raw_json
                 "#,
@@ -504,6 +516,8 @@ async fn insert_typed_perception_tx(
             .bind(&claim_a)
             .bind(&claim_b)
             .bind(str_field(contradiction, "materiality").unwrap_or("cosmetic"))
+            .bind(source)
+            .bind(confidence)
             .bind(str_field(contradiction, "rationale").unwrap_or(""))
             .bind(contradiction)
             .execute(&mut **tx)
@@ -632,6 +646,21 @@ fn str_field<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.get(key).and_then(Value::as_str).filter(|s| !s.trim().is_empty())
 }
 
+fn remember_claim_ref(claim_lookup: &mut HashMap<String, String>, raw_ref: &str, claim_id: &str) {
+    let key = claim_ref_key(raw_ref);
+    if !key.is_empty() {
+        claim_lookup.entry(key).or_insert_with(|| claim_id.to_string());
+    }
+}
+
+fn resolve_claim_ref(claim_lookup: &HashMap<String, String>, raw_ref: &str) -> Option<String> {
+    claim_lookup.get(&claim_ref_key(raw_ref)).cloned()
+}
+
+fn claim_ref_key(raw_ref: &str) -> String {
+    raw_ref.trim().to_ascii_lowercase()
+}
+
 fn stable_external_id(kind: &str, raw_id: &str, fallback: &str) -> String {
     let normalized = normalize_alias(raw_id);
     if normalized.is_empty() {
@@ -714,7 +743,8 @@ pub fn init() {
 
 #[cfg(test)]
 mod tests {
-    use super::resolve_quote_span;
+    use super::{remember_claim_ref, resolve_claim_ref, resolve_quote_span};
+    use std::collections::HashMap;
 
     #[test]
     fn resolves_exact_quote_span() {
@@ -728,6 +758,19 @@ mod tests {
             resolve_quote_span(source, "i postponed not cancelled her review"),
             Some((13, 51))
         );
+    }
+
+    #[test]
+    fn resolves_model_claim_text_to_persisted_claim_id() {
+        let mut lookup = HashMap::new();
+        remember_claim_ref(&mut lookup, "claim_1", "claim_claim_1");
+        remember_claim_ref(&mut lookup, "Alex agreed to own the deck.", "claim_claim_1");
+
+        assert_eq!(
+            resolve_claim_ref(&lookup, "alex agreed to own the deck."),
+            Some("claim_claim_1".to_string())
+        );
+        assert_eq!(resolve_claim_ref(&lookup, "unknown claim"), None);
     }
 }
 
