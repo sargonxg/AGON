@@ -5,8 +5,10 @@ use crate::prompts::{PERCEIVE_SCHEMA, PERCEIVE_SYSTEM};
 use aco_llm::{ExtractRequest, LlmBackend, MockLlmBackend, VertexAiBackend};
 use aco_storage::{Session, Store};
 use axum::{
+    body::Body,
     extract::{Path as AxPath, State},
-    http::{header, StatusCode},
+    http::{header, Request, StatusCode},
+    middleware::{self, Next},
     response::sse::{Event, KeepAlive, Sse},
     response::{Html, IntoResponse, Response},
     routing::{get, post},
@@ -86,20 +88,45 @@ impl AppState {
 }
 
 pub fn build_app(state: Arc<AppState>) -> Router {
-    Router::new()
+    let public = Router::new().route("/healthz", get(healthz)).route("/readyz", get(readyz));
+
+    let protected = Router::new()
         .route("/", get(index))
         .route("/assets/{*file}", get(asset))
-        .route("/healthz", get(healthz))
-        .route("/readyz", get(readyz))
         .route("/api/info", get(info))
         .route("/api/schema", get(schema_route))
         .route("/api/perceive", post(perceive))
         .route("/api/perceive/stream", post(perceive_stream))
         .route("/api/sessions", get(list_sessions))
         .route("/api/sessions/{id}", get(get_session_by_id))
+        .layer(middleware::from_fn(require_demo_auth));
+
+    public
+        .merge(protected)
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
         .with_state(state)
+}
+
+async fn require_demo_auth(req: Request<Body>, next: Next) -> Result<Response, Response> {
+    const EXPECTED: &str = "Basic QUdPTjpBR09O";
+    let allowed = req
+        .headers()
+        .get(header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v == EXPECTED)
+        .unwrap_or(false);
+
+    if allowed {
+        Ok(next.run(req).await)
+    } else {
+        Err((
+            StatusCode::UNAUTHORIZED,
+            [(header::WWW_AUTHENTICATE, "Basic realm=\"AGON\"")],
+            "AGON access required",
+        )
+            .into_response())
+    }
 }
 
 async fn index() -> impl IntoResponse {
@@ -211,15 +238,18 @@ fn friction_matrix(x: &serde_json::Value) -> serde_json::Value {
         })
         .unwrap_or_default();
 
-    // matrix[a][b] = float weight
+    // matrix[a][b] = float weight plus explainable factors for the UI.
     let mut m: HashMap<(String, String), f64> = HashMap::new();
-    let mut bump = |a: &str, b: &str, w: f64| {
+    let mut reasons: HashMap<(String, String), Vec<String>> = HashMap::new();
+    let mut bump = |a: &str, b: &str, w: f64, reason: String| {
         if a == b {
             return;
         }
         let (lo, hi) =
             if a < b { (a.to_string(), b.to_string()) } else { (b.to_string(), a.to_string()) };
-        *m.entry((lo, hi)).or_insert(0.0) += w;
+        let key = (lo, hi);
+        *m.entry(key.clone()).or_insert(0.0) += w;
+        reasons.entry(key).or_default().push(reason);
     };
 
     // Contradictions: heavy
@@ -233,7 +263,7 @@ fn friction_matrix(x: &serde_json::Value) -> serde_json::Value {
                 0.6
             };
             if let (Some(a), Some(b)) = (claim_owner.get(a_claim), claim_owner.get(b_claim)) {
-                bump(a, b, w);
+                bump(a, b, w, "contradictory claims".into());
             }
         }
     }
@@ -245,11 +275,79 @@ fn friction_matrix(x: &serde_json::Value) -> serde_json::Value {
                     // Spread denial over all other actors as small weight.
                     for other in &actors {
                         if other != a {
-                            bump(a, other, 0.4);
+                            bump(a, other, 0.4, "denial pressure".into());
                         }
                     }
                 }
             }
+        }
+    }
+    // Relationship edges are direct actor-to-actor pressure signals.
+    if let Some(arr) = x.get("relationships").and_then(|v| v.as_array()) {
+        for r in arr {
+            let Some(a) = r.get("from_actor").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let Some(b) = r.get("to_actor").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let kind = r.get("type").and_then(|v| v.as_str()).unwrap_or("relationship");
+            let base = r.get("weight").and_then(|v| v.as_f64()).unwrap_or(1.0).clamp(0.2, 3.0);
+            let w = match kind {
+                "accuses" | "retaliation_risk" => 1.6 * base,
+                "pressures" | "denies" | "bypasses" => 1.0 * base,
+                "supervises" | "commits_to" => 0.5 * base,
+                "supports" => -0.4 * base,
+                _ => 0.4 * base,
+            };
+            if w > 0.0 {
+                bump(a, b, w, format!("relationship: {kind}"));
+            }
+        }
+    }
+    // Broken or contested commitments create pairwise friction when a recipient is known.
+    if let Some(arr) = x.get("commitments").and_then(|v| v.as_array()) {
+        for c in arr {
+            let Some(a) = c.get("by_actor").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let Some(b) = c.get("to_actor").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let status = c.get("status").and_then(|v| v.as_str()).unwrap_or("proposed");
+            let w = match status {
+                "broken" => 1.4,
+                "contested" => 1.0,
+                _ => 0.2,
+            };
+            if w > 0.2 {
+                bump(a, b, w, format!("commitment {status}"));
+            }
+        }
+    }
+    // Escalation and power dynamics spread risk from the actor to their counterparties.
+    if let Some(arr) = x.get("escalation_signals").and_then(|v| v.as_array()) {
+        for e in arr {
+            let Some(a) = e.get("actor_id").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let intensity = e.get("intensity").and_then(|v| v.as_i64()).unwrap_or(1).clamp(1, 5);
+            for other in &actors {
+                if other != a {
+                    bump(a, other, intensity as f64 * 0.25, "escalation signal".into());
+                }
+            }
+        }
+    }
+    if let Some(arr) = x.get("power_dynamics").and_then(|v| v.as_array()) {
+        for p in arr {
+            let Some(a) = p.get("dominant_actor").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let Some(b) = p.get("subordinate_actor").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            bump(a, b, 0.8, "power dynamic".into());
         }
     }
     // Patterns DARVO/contempt/criticism by actor: light spread.
@@ -264,7 +362,7 @@ fn friction_matrix(x: &serde_json::Value) -> serde_json::Value {
             if let Some(a) = p.get("actor_id").and_then(|v| v.as_str()) {
                 for other in &actors {
                     if other != a {
-                        bump(a, other, w);
+                        bump(a, other, w, format!("pattern: {kind}"));
                     }
                 }
             }
@@ -274,6 +372,7 @@ fn friction_matrix(x: &serde_json::Value) -> serde_json::Value {
     let pairs: Vec<serde_json::Value> = m
         .into_iter()
         .map(|((a, b), w)| {
+            let key = (a.clone(), b.clone());
             serde_json::json!({
                 "a": a,
                 "b": b,
@@ -281,6 +380,7 @@ fn friction_matrix(x: &serde_json::Value) -> serde_json::Value {
                 "b_label": actor_label.get(&b).cloned().unwrap_or(b.clone()),
                 "weight": (w * 100.0).round() / 100.0,
                 "heat": ((w * 30.0).min(100.0)).round() as i64,
+                "reasons": reasons.get(&key).cloned().unwrap_or_default(),
             })
         })
         .collect();

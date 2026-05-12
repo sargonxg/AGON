@@ -60,7 +60,20 @@ The maritime claim is settled in international law. Any negotiation that proceed
 Reyes alleges: (i) Patel removed her from the Aurora project on March 14 after she raised concerns about timeline feasibility on March 11; (ii) Patel told colleagues in a 1:1 that Reyes "isn't a team player"; (iii) Patel cancelled her promotion review without notice.
 Patel response (interview 2026-04-09): "I removed Reyes from Aurora because she had begun to escalate to my skip-level without notifying me. The timeline feedback was not the trigger. The 'not a team player' comment was made in confidence and reflects a pattern of bypass behaviour. I postponed not cancelled her review; the postponement was discussed."
 Reyes rebuttal (interview 2026-04-12): "I escalated to skip-level because Patel had not responded to two written concerns about Aurora's scope. The skip-level escalation happened on March 13, the day before removal. The 'pattern of bypass' framing reverses cause and effect."
-HR observation: Records show two unread emails from Reyes to Patel dated March 6 and March 9 (subjects: 'Aurora — scope risk').`
+HR observation: Records show two unread emails from Reyes to Patel dated March 6 and March 9 (subjects: 'Aurora — scope risk').`,
+
+  legal: `Deposition of N. Hart, 2026-03-18:
+Q: Did you approve the vendor exception before finance reviewed it?
+A: No. Finance had already signed off before I saw the request.
+
+Email from N. Hart to Finance, 2026-03-14 09:22:
+"Please hold the review until I confirm with Lena. We may need to route this outside the standard queue."
+
+Finance reply, 2026-03-14 11:03:
+"Understood. No approval has been issued yet."
+
+Lena Slack message, 2026-03-14 13:48:
+"Nick told me it was approved this morning and that legal could paper it later."`
 };
 
 (async function init() {
@@ -73,6 +86,14 @@ HR observation: Records show two unread emails from Reyes to Patel dated March 6
 })();
 
 document.getElementById('refresh-history')?.addEventListener('click', loadHistory);
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => activateTab(tab.dataset.tab));
+});
+
+function activateTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === id));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === id));
+}
 
 async function loadHistory() {
   try {
@@ -229,6 +250,7 @@ function setStatus(msg, err) {
 
 function render(x) {
   $('results').classList.remove('hidden');
+  activateTab('overview');
   const friction = x.friction_score ?? 0;
   const fe = $('friction');
   fe.textContent = friction;
@@ -245,7 +267,10 @@ function render(x) {
     <div class="item">
       <span class="lbl">${esc(a.label || a.id)}</span>
       ${a.kind ? `<span class="tag">${esc(a.kind)}</span>` : ''}
+      ${a.role ? `<span class="tag">${esc(a.role)}</span>` : ''}
       ${a.aliases?.length ? `<div class="meta">aka: ${a.aliases.map(esc).join(', ')}</div>` : ''}
+      ${evidenceBadge(a.evidence)}
+      ${a.evidence ? `<span class="ev">"${esc(a.evidence)}"</span>` : ''}
     </div>
   `).join('') || '<div class="meta">none</div>';
 
@@ -254,6 +279,8 @@ function render(x) {
       <span class="lbl">${esc(actorName(x, c.actor_id))}:</span>
       ${esc(c.text)}
       ${c.polarity ? `<span class="tag">${esc(c.polarity)}</span>` : ''}
+      ${c.subject_actor_id ? `<span class="tag">re: ${esc(actorName(x, c.subject_actor_id))}</span>` : ''}
+      ${evidenceBadge(c.evidence)}
       ${c.evidence ? `<span class="ev">"${esc(c.evidence)}"</span>` : ''}
     </div>
   `).join('') || '<div class="meta">none</div>';
@@ -262,15 +289,17 @@ function render(x) {
     <div class="item">
       <span class="lbl">${esc(e.label)}</span>
       ${e.when ? `<span class="meta">· ${esc(e.when)}</span>` : ''}
+      ${evidenceBadge(e.evidence)}
       ${e.evidence ? `<span class="ev">"${esc(e.evidence)}"</span>` : ''}
     </div>
   `).join('') || '<div class="meta">none</div>';
 
   $('commitments').innerHTML = (x.commitments || []).map(c => `
     <div class="item">
-      <span class="lbl">${esc(actorName(x, c.by_actor))} →</span> ${esc(c.subject)}
+      <span class="lbl">${esc(actorName(x, c.by_actor))}${c.to_actor ? ' → ' + esc(actorName(x, c.to_actor)) : ' →'}</span> ${esc(c.subject)}
       ${c.deadline ? `<span class="meta">· due ${esc(c.deadline)}</span>` : ''}
       <span class="tag ${statusTag(c.status)}">${esc(c.status)}</span>
+      ${evidenceBadge(c.evidence)}
       ${c.evidence ? `<span class="ev">"${esc(c.evidence)}"</span>` : ''}
     </div>
   `).join('') || '<div class="meta">none</div>';
@@ -288,6 +317,7 @@ function render(x) {
       <span class="lbl">${esc(p.kind)}</span>
       <span class="tag ${heat(p.confidence)}">${(p.confidence ?? 0).toFixed(2)}</span>
       ${actorName(x, p.actor_id) ? `<span class="meta">· ${esc(actorName(x, p.actor_id))}</span>` : ''}
+      ${evidenceBadge(p.evidence)}
       ${p.evidence ? `<span class="ev">"${esc(p.evidence)}"</span>` : ''}
     </div>
   `).join('') || '<div class="meta">none</div>';
@@ -296,13 +326,23 @@ function render(x) {
     const a = (x.claims || []).find(cl => cl.id === c.claim_a);
     const b = (x.claims || []).find(cl => cl.id === c.claim_b);
     return `
-    <div class="item">
+    <div class="item contradiction-card">
       <span class="tag ${c.materiality}">${esc(c.materiality)}</span>
-      <div style="margin-top:6px"><strong>A:</strong> ${esc(a?.text || c.claim_a)}</div>
-      <div style="margin-top:4px"><strong>B:</strong> ${esc(b?.text || c.claim_b)}</div>
+      ${c.source ? `<span class="tag">${esc(c.source)}</span>` : '<span class="tag">model_suggested</span>'}
+      ${c.confidence != null ? `<span class="tag ${heat(c.confidence)}">${Number(c.confidence).toFixed(2)}</span>` : ''}
+      <div class="claim-pair">
+        <div><strong>A · ${esc(actorName(x, a?.actor_id) || 'unknown')}</strong><p>${esc(a?.text || c.claim_a)}</p>${a?.evidence ? `<span class="ev">"${esc(a.evidence)}"</span>` : ''}</div>
+        <div><strong>B · ${esc(actorName(x, b?.actor_id) || 'unknown')}</strong><p>${esc(b?.text || c.claim_b)}</p>${b?.evidence ? `<span class="ev">"${esc(b.evidence)}"</span>` : ''}</div>
+      </div>
       ${c.rationale ? `<div class="meta" style="margin-top:6px">${esc(c.rationale)}</div>` : ''}
     </div>`;
   }).join('') || '<div class="meta">none</div>';
+
+  renderRelationships(x);
+  renderPowerDynamics(x);
+  renderEscalation(x);
+  renderResolution(x);
+  renderEvidenceLedger(x);
 
   $('raw').textContent = JSON.stringify(x, null, 2);
   drawGraph(x);
@@ -422,6 +462,20 @@ function renderHeatmap(m, x) {
   }
   html += '</tbody></table>';
   el.innerHTML = html;
+  renderFrictionDrivers(m);
+}
+
+function renderFrictionDrivers(m) {
+  const el = $('friction-drivers');
+  if (!el) return;
+  const pairs = [...(m?.pairs || [])].sort((a, b) => (b.weight || 0) - (a.weight || 0));
+  el.innerHTML = pairs.length ? pairs.map(p => `
+    <div class="item">
+      <span class="lbl">${esc(p.a_label)} ↔ ${esc(p.b_label)}</span>
+      <span class="tag ${p.weight >= 3 ? 'high' : p.weight >= 1 ? 'med' : 'low'}">${Number(p.weight || 0).toFixed(1)}</span>
+      <div class="meta">${(p.reasons || []).slice(0, 6).map(esc).join(' · ') || 'derived pressure'}</div>
+    </div>
+  `).join('') : '<div class="meta">no pair pressure yet</div>';
 }
 
 function renderPreCanon(pc) {
@@ -433,6 +487,94 @@ function renderPreCanon(pc) {
     <div class="row"><span class="k">turns</span><span>${pc.n_turns} / lines ${pc.n_lines} / chars ${pc.n_chars}</span></div>
     <div class="row"><span class="k">speakers</span><span>${speakers || '<span class="meta">(none — prose)</span>'}</span></div>
   `;
+}
+
+function renderRelationships(x) {
+  const el = $('relationships');
+  if (!el) return;
+  el.innerHTML = (x.relationships || []).map(r => `
+    <div class="item">
+      <span class="lbl">${esc(actorName(x, r.from_actor))} → ${esc(actorName(x, r.to_actor))}</span>
+      <span class="tag">${esc(r.type || 'relationship')}</span>
+      ${r.weight != null ? `<span class="tag ${Number(r.weight) >= 2 ? 'high' : 'med'}">${Number(r.weight).toFixed(1)}</span>` : ''}
+      ${evidenceBadge(r.evidence)}
+      ${r.evidence ? `<span class="ev">"${esc(r.evidence)}"</span>` : ''}
+    </div>
+  `).join('') || '<div class="meta">none extracted</div>';
+}
+
+function renderPowerDynamics(x) {
+  const el = $('power-dynamics');
+  if (!el) return;
+  el.innerHTML = (x.power_dynamics || []).map(p => `
+    <div class="item">
+      <span class="lbl">${esc(actorName(x, p.dominant_actor))} over ${esc(actorName(x, p.subordinate_actor))}</span>
+      ${p.confidence != null ? `<span class="tag ${heat(p.confidence)}">${Number(p.confidence).toFixed(2)}</span>` : ''}
+      <div>${esc(p.basis || '')}</div>
+      ${evidenceBadge(p.evidence)}
+      ${p.evidence ? `<span class="ev">"${esc(p.evidence)}"</span>` : ''}
+    </div>
+  `).join('') || '<div class="meta">none extracted</div>';
+}
+
+function renderEscalation(x) {
+  const el = $('escalation');
+  if (!el) return;
+  el.innerHTML = (x.escalation_signals || []).map(e => `
+    <div class="item">
+      <span class="lbl">${esc(actorName(x, e.actor_id))}</span>
+      <span class="tag ${Number(e.intensity || 0) >= 4 ? 'high' : 'med'}">intensity ${esc(e.intensity || '?')}</span>
+      <div>${esc(e.trigger || '')}</div>
+      ${evidenceBadge(e.evidence)}
+      ${e.evidence ? `<span class="ev">"${esc(e.evidence)}"</span>` : ''}
+    </div>
+  `).join('') || '<div class="meta">none extracted</div>';
+}
+
+function renderResolution(x) {
+  const el = $('resolution');
+  if (!el) return;
+  el.innerHTML = (x.resolution_opportunities || []).map(o => `
+    <div class="item">
+      <span class="lbl">${esc(actorName(x, o.actor_id))}</span>
+      <div>${esc(o.opening || '')}</div>
+      ${evidenceBadge(o.evidence)}
+      ${o.evidence ? `<span class="ev">"${esc(o.evidence)}"</span>` : ''}
+    </div>
+  `).join('') || '<div class="meta">none extracted</div>';
+}
+
+function renderEvidenceLedger(x) {
+  const source = $('text').value || '';
+  const rows = [];
+  const push = (kind, label, quote) => {
+    if (!quote) return;
+    const verified = source.includes(quote);
+    rows.push({ kind, label, quote, verified });
+  };
+  (x.actors || []).forEach(a => push('actor', a.label || a.id, a.evidence));
+  (x.claims || []).forEach(c => push('claim', c.text, c.evidence));
+  (x.events || []).forEach(e => push('event', e.label, e.evidence));
+  (x.commitments || []).forEach(c => push('commitment', c.subject, c.evidence));
+  (x.patterns || []).forEach(p => push('pattern', p.kind, p.evidence));
+  (x.relationships || []).forEach(r => push('relationship', r.type, r.evidence));
+  (x.power_dynamics || []).forEach(p => push('power', p.basis, p.evidence));
+  (x.escalation_signals || []).forEach(e => push('escalation', e.trigger, e.evidence));
+  (x.resolution_opportunities || []).forEach(o => push('resolution', o.opening, o.evidence));
+  $('evidence-ledger').innerHTML = rows.length ? rows.map(r => `
+    <div class="item evidence-row">
+      <span class="tag">${esc(r.kind)}</span>
+      <span class="tag ${r.verified ? 'low' : 'material'}">${r.verified ? 'verified' : 'unresolved'}</span>
+      <div class="meta">${esc(trunc(r.label, 100))}</div>
+      <span class="ev">"${esc(r.quote)}"</span>
+    </div>
+  `).join('') : '<div class="meta">no evidence quotes returned</div>';
+}
+
+function evidenceBadge(quote) {
+  if (!quote) return '';
+  const verified = ($('text').value || '').includes(quote);
+  return `<span class="tag ${verified ? 'low' : 'material'}">${verified ? 'verified' : 'unresolved'}</span>`;
 }
 
 function svgEl(name, attrs) {

@@ -655,10 +655,40 @@ fn resolve_quote_span(source_text: &str, quote: &str) -> Option<(usize, usize)> 
     if needle.is_empty() {
         return None;
     }
-    let byte_start = source_text.find(needle)?;
-    let char_start = source_text[..byte_start].chars().count();
-    let char_len = needle.chars().count();
-    Some((char_start, char_start + char_len))
+    if let Some(byte_start) = source_text.find(needle) {
+        let char_start = source_text[..byte_start].chars().count();
+        let char_len = needle.chars().count();
+        return Some((char_start, char_start + char_len));
+    }
+    resolve_normalized_quote_span(source_text, needle)
+}
+
+fn resolve_normalized_quote_span(source_text: &str, quote: &str) -> Option<(usize, usize)> {
+    let source_chars: Vec<char> = source_text.chars().collect();
+    let source_norm: Vec<(char, usize)> = source_chars
+        .iter()
+        .enumerate()
+        .filter_map(|(idx, ch)| normalize_match_char(*ch).map(|c| (c, idx)))
+        .collect();
+    let quote_norm: Vec<char> = quote.chars().filter_map(normalize_match_char).collect();
+    if quote_norm.is_empty() || quote_norm.len() > source_norm.len() {
+        return None;
+    }
+
+    let start = source_norm
+        .windows(quote_norm.len())
+        .position(|window| window.iter().map(|(ch, _)| *ch).eq(quote_norm.iter().copied()))?;
+    let char_start = source_norm[start].1;
+    let char_end = source_norm[start + quote_norm.len() - 1].1 + 1;
+    Some((char_start, char_end))
+}
+
+fn normalize_match_char(ch: char) -> Option<char> {
+    if ch.is_ascii_alphanumeric() {
+        Some(ch.to_ascii_lowercase())
+    } else {
+        None
+    }
 }
 
 fn normalize_alias(alias: &str) -> String {
@@ -680,6 +710,25 @@ fn normalize_alias(alias: &str) -> String {
 /// Emit an init span; called by binaries that want to confirm the crate loaded.
 pub fn init() {
     tracing::trace!(crate_name = "aco-storage", version = env!("CARGO_PKG_VERSION"), "loaded");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::resolve_quote_span;
+
+    #[test]
+    fn resolves_exact_quote_span() {
+        assert_eq!(resolve_quote_span("Sam said yes.", "said yes"), Some((4, 12)));
+    }
+
+    #[test]
+    fn resolves_punctuation_and_case_drift() {
+        let source = "Patel said: \"I postponed, not cancelled, her review.\"";
+        assert_eq!(
+            resolve_quote_span(source, "i postponed not cancelled her review"),
+            Some((13, 51))
+        );
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

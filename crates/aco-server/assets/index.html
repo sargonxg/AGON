@@ -10,15 +10,26 @@
 <header>
   <div class="brand">
     <div class="logo">AGON</div>
-    <div class="tagline">Conflict perception engine · <span id="backend">…</span></div>
+    <div class="tagline">Evidence-backed conflict intelligence · <span id="backend">…</span></div>
   </div>
   <nav><a href="https://github.com/sargonxg/AGON" target="_blank" rel="noopener">github</a><span class="dot">·</span><a href="/readyz">status</a></nav>
 </header>
 
 <main>
   <section class="intake">
-    <h1>Drop conflict text. AGON extracts the world model.</h1>
-    <p class="lede">Messages, transcripts, complaints, depositions, journals — AGON perceives actors, claims, events, commitments, contradictions, patterns. Every primitive cites its verbatim source span.</p>
+    <div class="hero-grid">
+      <div>
+        <p class="eyebrow">Rust conflict primitive engine</p>
+        <h1>Drop messy human conflict text. AGON exposes the structure.</h1>
+        <p class="lede">Workplace investigations, mediation files, negotiation logs, complaints, depositions, and email threads become actors, claims, commitments, contradictions, friction, and evidence spans. The point is not summary. The point is auditable conflict intelligence.</p>
+      </div>
+      <div class="capability-board">
+        <div><strong>Trust core</strong><span>quote-first primitives</span></div>
+        <div><strong>Identity</strong><span>conservative alias fusion</span></div>
+        <div><strong>Friction</strong><span>actor x actor pressure</span></div>
+        <div><strong>Audit</strong><span>verified vs unresolved evidence</span></div>
+      </div>
+    </div>
 
     <textarea id="text" placeholder="Paste 2–10 paragraphs of conflict text here. Example: a message thread, a board minutes excerpt, a deposition snippet, a co-parenting WhatsApp transcript…"></textarea>
 
@@ -33,6 +44,7 @@
           <option value="commercial">commercial · vendor pricing</option>
           <option value="diplomatic">diplomatic · maritime boundary</option>
           <option value="hr">workplace · hr complaint</option>
+          <option value="legal">legal · deposition contradiction</option>
         </select>
       </span>
       <span class="picker">
@@ -57,79 +69,128 @@
   </section>
 
   <section id="results" class="results hidden">
-    <div class="cards">
-      <div class="card"><h3>Friction</h3><div id="friction" class="big">—</div></div>
-      <div class="card"><h3>Actors</h3><div id="n-actors" class="big">—</div></div>
-      <div class="card"><h3>Claims</h3><div id="n-claims" class="big">—</div></div>
-      <div class="card"><h3>Events</h3><div id="n-events" class="big">—</div></div>
-      <div class="card"><h3>Patterns</h3><div id="n-patterns" class="big">—</div></div>
-      <div class="card"><h3>Contradictions</h3><div id="n-contras" class="big">—</div></div>
+    <div class="tabs" role="tablist" aria-label="AGON result views">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="actors-tab">Actors</button>
+      <button class="tab" data-tab="friction-tab">Friction</button>
+      <button class="tab" data-tab="contradictions-tab">Contradictions</button>
+      <button class="tab" data-tab="evidence-tab">Evidence</button>
+      <button class="tab" data-tab="raw-tab">Raw</button>
     </div>
 
-    <div class="summary">
-      <h3>Summary</h3>
-      <p id="summary"></p>
-    </div>
-
-    <div class="dual">
-      <div class="panel">
-        <h3>Friction matrix (actor × actor)</h3>
-        <div id="heatmap" class="heatmap"></div>
+    <div id="overview" class="tab-pane active">
+      <div class="cards">
+        <div class="card"><h3>Friction</h3><div id="friction" class="big">—</div></div>
+        <div class="card"><h3>Actors</h3><div id="n-actors" class="big">—</div></div>
+        <div class="card"><h3>Claims</h3><div id="n-claims" class="big">—</div></div>
+        <div class="card"><h3>Events</h3><div id="n-events" class="big">—</div></div>
+        <div class="card"><h3>Patterns</h3><div id="n-patterns" class="big">—</div></div>
+        <div class="card"><h3>Contradictions</h3><div id="n-contras" class="big">—</div></div>
       </div>
-      <div class="panel">
-        <h3>Pre-canonical envelope</h3>
-        <div id="precanon" class="precanon"></div>
-      </div>
-    </div>
-
-    <div class="panel wide">
-      <h3>Graph</h3>
-      <svg id="graph" viewBox="0 0 1200 480" preserveAspectRatio="xMidYMid meet"></svg>
-      <div class="legend">
-        <span class="dot actor"></span>actor
-        <span class="dot claim"></span>claim
-        <span class="dot event"></span>event
-        <span class="dot commitment"></span>commitment
-        <span class="dot interest"></span>interest
-        <span style="margin-left:auto;color:var(--muted);">edges: ASSERTED · COMMITS_TO · HOLDS_INTEREST · <span style="color:var(--bad)">CONTRADICTS</span></span>
-      </div>
-    </div>
-
-    <div class="grid">
-      <div class="panel">
-        <h3>Actors</h3>
-        <div id="actors"></div>
-      </div>
-      <div class="panel">
-        <h3>Claims</h3>
-        <div id="claims"></div>
-      </div>
-      <div class="panel">
-        <h3>Events</h3>
-        <div id="events"></div>
-      </div>
-      <div class="panel">
-        <h3>Commitments</h3>
-        <div id="commitments"></div>
-      </div>
-      <div class="panel">
-        <h3>Interests (inferred)</h3>
-        <div id="interests"></div>
-      </div>
-      <div class="panel">
-        <h3>Patterns</h3>
-        <div id="patterns"></div>
+      <div class="summary">
+        <h3>Executive conflict read</h3>
+        <p id="summary"></p>
       </div>
       <div class="panel wide">
-        <h3>Contradictions</h3>
+        <h3>Conflict graph</h3>
+        <svg id="graph" viewBox="0 0 1200 480" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="legend">
+          <span class="dot actor"></span>actor
+          <span class="dot claim"></span>claim
+          <span class="dot event"></span>event
+          <span class="dot commitment"></span>commitment
+          <span class="dot interest"></span>interest
+          <span style="margin-left:auto;color:var(--muted);">edges: ASSERTED · COMMITS_TO · HOLDS_INTEREST · <span style="color:var(--bad)">CONTRADICTS</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="actors-tab" class="tab-pane">
+      <div class="grid">
+        <div class="panel">
+          <h3>Canonical actors</h3>
+          <div id="actors"></div>
+        </div>
+        <div class="panel">
+          <h3>Pre-canonical envelope</h3>
+          <div id="precanon" class="precanon"></div>
+        </div>
+        <div class="panel">
+          <h3>Power dynamics</h3>
+          <div id="power-dynamics"></div>
+        </div>
+        <div class="panel">
+          <h3>Relationships</h3>
+          <div id="relationships"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="friction-tab" class="tab-pane">
+      <div class="dual">
+        <div class="panel">
+          <h3>Friction matrix (actor × actor)</h3>
+          <div id="heatmap" class="heatmap"></div>
+        </div>
+        <div class="panel">
+          <h3>Pair drivers</h3>
+          <div id="friction-drivers"></div>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="panel">
+          <h3>Escalation signals</h3>
+          <div id="escalation"></div>
+        </div>
+        <div class="panel">
+          <h3>Resolution openings</h3>
+          <div id="resolution"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="contradictions-tab" class="tab-pane">
+      <div class="panel wide">
+        <h3>Contradiction cards</h3>
         <div id="contras"></div>
       </div>
     </div>
 
-    <details class="raw">
-      <summary>Raw JSON</summary>
-      <pre id="raw"></pre>
-    </details>
+    <div id="evidence-tab" class="tab-pane">
+      <div class="grid">
+        <div class="panel">
+          <h3>Claims</h3>
+          <div id="claims"></div>
+        </div>
+        <div class="panel">
+          <h3>Events</h3>
+          <div id="events"></div>
+        </div>
+        <div class="panel">
+          <h3>Commitments</h3>
+          <div id="commitments"></div>
+        </div>
+        <div class="panel">
+          <h3>Interests (inferred)</h3>
+          <div id="interests"></div>
+        </div>
+        <div class="panel">
+          <h3>Patterns</h3>
+          <div id="patterns"></div>
+        </div>
+        <div class="panel">
+          <h3>Evidence ledger</h3>
+          <div id="evidence-ledger"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="raw-tab" class="tab-pane">
+      <details class="raw" open>
+        <summary>Raw JSON</summary>
+        <pre id="raw"></pre>
+      </details>
+    </div>
   </section>
 
   <section class="history-section">
