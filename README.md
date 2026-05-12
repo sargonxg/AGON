@@ -33,6 +33,22 @@ Paste text. AGON extracts the conflict structure:
 
 Every serious conclusion is tied back to source text. If a quote cannot be verified against the source, AGON marks it unresolved instead of pretending.
 
+## Why AGON Exists
+
+Conflict work is usually trapped in prose: complaints, replies, interviews, chats, emails, meeting notes, deposition fragments, and partial memories. Standard AI systems smooth that material into summaries. That is useful for reading, but dangerous for judgment.
+
+AGON does the opposite. It keeps disagreement structured.
+
+It turns narrative conflict into typed, inspectable primitives that can be searched, scored, challenged, exported, and audited. The intended user is not asking "write me a nice summary." The intended user is asking:
+
+- who is in conflict with whom?
+- what exactly is being claimed?
+- what is denied?
+- what commitment is contested?
+- where do timelines diverge?
+- which evidence quotes are verified?
+- what should a mediator, investigator, or legal team inspect first?
+
 ## Live Dev App
 
 ```text
@@ -43,6 +59,47 @@ Status:   /readyz
 ```
 
 The public health endpoints stay open. The workbench and API are protected with Basic Auth for demos.
+
+Last verified deployment:
+
+```text
+Revision: agon-dev-00009-xvd
+Image:    us-central1-docker.pkg.dev/tacitus-agon-dev/agon/agon-server:b8d2808ef26e
+State:    Vertex backend online, Cloud SQL connected, report export working
+```
+
+## Try The API
+
+PowerShell:
+
+```powershell
+$base = "https://agon-dev-tbryoen6qa-uc.a.run.app"
+$headers = @{
+  Authorization = "Basic QUdPTjpBR09O"
+  "content-type" = "application/json"
+}
+$body = @{
+  model = "flash-lite"
+  text = "Sam says Alex agreed to own the deck. Alex says he never agreed to own the deck. Sam produced a message from Monday saying Alex accepted ownership. Alex says the Monday message was about a different deck."
+} | ConvertTo-Json
+
+$result = Invoke-WebRequest "$base/api/perceive" -Headers $headers -Method POST -Body $body -UseBasicParsing
+$json = $result.Content | ConvertFrom-Json
+$json.session_id
+
+Invoke-WebRequest "$base/api/sessions/$($json.session_id)/report.md" -Headers @{ Authorization = "Basic QUdPTjpBR09O" } -UseBasicParsing
+```
+
+Expected shape:
+
+```text
+persisted:      true
+actors:         Sam, Alex
+claims:         4
+contradictions: deterministic and model-suggested conflict pairs
+evidence:       verified quote ledger
+report:         Markdown conflict intelligence report
+```
 
 ## What Makes It Different
 
@@ -62,6 +119,20 @@ unstructured text
 ```
 
 The first wedge is enterprise HR/workplace investigations and internal mediation: high-volume, high-risk human conflict where speed matters, but auditability matters more.
+
+## Library First, App Second
+
+The browser workbench is deliberately small. It exists to showcase the engine.
+
+The durable value is the Rust library stack:
+
+- strong primitive types in `aco-core`
+- deterministic alias fusion in `aco-fuse`
+- model-constrained extraction in `aco-llm`
+- evidence-backed persistence in `aco-storage`
+- thin API/workbench shell in `aco-server`
+
+The app should stay simple enough that a user understands the result in one page. The library should become powerful enough to process large volumes of messy human text into a defensible conflict graph.
 
 ## Current Architecture
 
