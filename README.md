@@ -1,5 +1,9 @@
 # AGON
 
+[![CI](https://github.com/sargonxg/AGON/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/sargonxg/AGON/actions/workflows/ci.yml)
+[![Docker](https://github.com/sargonxg/AGON/actions/workflows/docker.yml/badge.svg?branch=main)](https://github.com/sargonxg/AGON/actions/workflows/docker.yml)
+[![Audit](https://github.com/sargonxg/AGON/actions/workflows/audit.yml/badge.svg?branch=main)](https://github.com/sargonxg/AGON/actions/workflows/audit.yml)
+
 ```text
    █████╗  ██████╗  ██████╗ ███╗   ██╗
   ██╔══██╗██╔════╝ ██╔═══██╗████╗  ██║
@@ -12,67 +16,102 @@
   perception is sovereign.
 ```
 
-AGON is a Rust conflict-intelligence engine by TACITUS.
+AGON is a Rust conflict-intelligence engine by [TACITUS](https://www.tacitus.me).
 
-It is not a chatbot. It is a primitive engine for messy human conflict text: HR complaints, workplace investigations, mediation notes, negotiation logs, depositions, email threads, board minutes, and contradictory narratives.
+It turns messy human conflict text into typed, evidence-backed primitives: actors, aliases, claims, denials, events, commitments, contradictions, escalation signals, power dynamics, relationship friction, review questions, and auditable reports.
 
-Paste text. AGON extracts the conflict structure:
+It is not a chatbot. It is infrastructure for conflict vision.
 
-- actors and aliases
-- claims and denials
-- events and timelines
-- commitments and contested obligations
-- relationship pressure
-- power dynamics
-- escalation signals
-- resolution openings
-- contradictions
-- evidence spans
-- actor x actor friction
-- document pre-reading profile
-- local neural/sparse claim relatedness signals
-- deterministic inference findings
-- quality gates and review questions
-- Markdown reports
-
-Every serious conclusion is tied back to source text. If a quote cannot be verified against the source, AGON marks it unresolved instead of pretending.
-
-## Why AGON Exists
-
-Conflict work is usually trapped in prose: complaints, replies, interviews, chats, emails, meeting notes, deposition fragments, and partial memories. Standard AI systems smooth that material into summaries. That is useful for reading, but dangerous for judgment.
-
-AGON does the opposite. It keeps disagreement structured.
-
-It turns narrative conflict into typed, inspectable primitives that can be searched, scored, challenged, exported, and audited. The intended user is not asking "write me a nice summary." The intended user is asking:
-
-- who is in conflict with whom?
-- what exactly is being claimed?
-- what is denied?
-- what commitment is contested?
-- where do timelines diverge?
-- which evidence quotes are verified?
-- what should a mediator, investigator, or legal team inspect first?
-
-## Live Dev App
+## Live Demo
 
 ```text
 URL:      https://agon-dev-tbryoen6qa-uc.a.run.app
 User:     AGON
 Password: AGON
-Status:   /readyz
+Status:   https://agon-dev-tbryoen6qa-uc.a.run.app/readyz
 ```
 
-The public health endpoints stay open. The workbench and API are protected with Basic Auth for demos.
-
-Last verified deployment:
+Current deployed target:
 
 ```text
-Revision: agon-dev-00009-xvd
-Image:    us-central1-docker.pkg.dev/tacitus-agon-dev/agon/agon-server:b8d2808ef26e
-State:    Vertex backend online, Cloud SQL connected, report export working
+Project:  tacitus-agon-dev
+Region:   us-central1
+Service:  agon-dev
+Backend:  Vertex AI Gemini + Cloud SQL
 ```
 
-## Try The API
+The demo app is intentionally one page: paste a case, run perception, inspect the friction map, contradictions, evidence, quality gates, and raw JSON.
+
+## Why This Exists
+
+Human conflict lives in language before it becomes a case file, risk register, mediation packet, lawsuit, HR investigation, board issue, or institutional memory.
+
+The source material is usually fragmented:
+
+- complaint narratives
+- replies and rebuttals
+- interview notes
+- Slack and email threads
+- deposition excerpts
+- mediation memos
+- negotiation logs
+- timelines reconstructed after the fact
+
+Generic AI summarizes this material into smoother prose. That can be useful, but it can also erase the structure that matters most: who claims what, who denies what, what commitment is contested, which evidence supports it, where the timeline diverges, and what remains uncertain.
+
+AGON takes the opposite posture.
+
+It preserves disagreement as data.
+
+The goal is to make tacit interpersonal and institutional friction computable without making it opaque. Every serious conclusion should be traceable to source text, marked with confidence, and reviewable by a human.
+
+## TACITUS Context
+
+TACITUS builds tools for institutions that need clearer judgment under pressure.
+
+The broader vision is a stack of small, serious systems for perception, reasoning, and decision support across complex human domains: conflict, policy, diplomacy, governance, organizations, and high-stakes coordination.
+
+AGON is the conflict-vision layer of that stack. It asks:
+
+```text
+Can a system read large volumes of messy human text
+and construct a defensible map of friction, evidence,
+relationships, contested facts, and resolution openings?
+```
+
+That map is not a verdict. It is a better substrate for investigation, mediation, legal review, and institutional learning.
+
+## What AGON Does Today
+
+Given raw text, AGON produces:
+
+- canonical actors and aliases
+- claims, events, commitments, patterns, and contradictions
+- source-backed evidence spans with verified or unresolved status
+- actor-by-actor friction matrix
+- document pre-reading profile
+- local sparse neural-style claim relatedness signals
+- deterministic inference findings
+- quality gates and review questions
+- persistent sessions and typed storage in Postgres
+- Markdown export reports
+- streaming and non-streaming API routes
+
+Live API routes:
+
+```text
+GET  /healthz
+GET  /readyz
+GET  /api/info
+GET  /api/schema
+POST /api/perceive
+POST /api/perceive/stream
+GET  /api/sessions
+GET  /api/sessions/{id}
+GET  /api/sessions/{id}/report.md
+```
+
+## Quick API Call
 
 PowerShell:
 
@@ -84,202 +123,138 @@ $headers = @{
 }
 $body = @{
   model = "flash-lite"
-  text = "Sam says Alex agreed to own the deck. Alex says he never agreed to own the deck. Sam produced a message from Monday saying Alex accepted ownership. Alex says the Monday message was about a different deck."
+  text = "Sam says Alex agreed to own the board packet. Alex says he never agreed to own it and only promised comments. Sam produced a Monday Slack message saying Alex accepted ownership. Alex says that message referred to another deck."
 } | ConvertTo-Json
 
 $result = Invoke-WebRequest "$base/api/perceive" -Headers $headers -Method POST -Body $body -UseBasicParsing
 $json = $result.Content | ConvertFrom-Json
 $json.session_id
 
-Invoke-WebRequest "$base/api/sessions/$($json.session_id)/report.md" -Headers @{ Authorization = "Basic QUdPTjpBR09O" } -UseBasicParsing
+Invoke-WebRequest "$base/api/sessions/$($json.session_id)/report.md" `
+  -Headers @{ Authorization = "Basic QUdPTjpBR09O" } `
+  -UseBasicParsing
 ```
 
-Expected shape:
+Expected response surface:
 
 ```text
-persisted:      true
-actors:         Sam, Alex
-claims:         4
-contradictions: deterministic and model-suggested conflict pairs
-evidence:       verified quote ledger
-inferences:     deterministic findings and quality gates
-report:         Markdown conflict intelligence report
+persisted:        true when Cloud SQL is connected
+document_profile: segments, markers, density, reading notes
+actors:           canonical actor records
+claims:           evidence-backed assertions
+contradictions:   model-suggested and deterministic conflict pairs
+neural_signals:   local sparse claim relatedness candidates
+inferences:       denied obligations, contested commitments, escalation loops
+quality_gates:    evidence coverage, ambiguity, conflict signal strength
+review_questions: human review prompts before decision use
+report.md:        auditable Markdown export
 ```
 
-## What Makes It Different
-
-Most AI tools summarize conflict away. AGON preserves conflict.
-
-It does not average two incompatible accounts into a smooth paragraph. It separates who said what, what they deny, what they promised, where the stories diverge, and what evidence supports each primitive.
-
-The core product bet:
-
-```text
-unstructured text
-  -> typed conflict primitives
-  -> evidence spans
-  -> contradiction graph
-  -> friction matrix
-  -> auditable report
-```
-
-The first wedge is enterprise HR/workplace investigations and internal mediation: high-volume, high-risk human conflict where speed matters, but auditability matters more.
-
-## Library First, App Second
-
-The browser workbench is deliberately small. It exists to showcase the engine.
-
-The durable value is the Rust library stack:
-
-- strong primitive types in `aco-core`
-- local neural/sparse conflict signals in `aco-embed`
-- deterministic conflict inference in `aco-infer`
-- deterministic alias fusion in `aco-fuse`
-- model-constrained extraction in `aco-llm`
-- evidence-backed persistence in `aco-storage`
-- thin API/workbench shell in `aco-server`
-
-The app should stay simple enough that a user understands the result in one page. The library should become powerful enough to process large volumes of messy human text into a defensible conflict graph.
-
-## Current Architecture
+## Architecture
 
 ```text
 browser
-  -> Cloud Run / Axum / Rust
-      -> deterministic pre-reading / document profile
+  -> Axum / Rust / Cloud Run
+      -> document pre-reading
       -> Vertex AI Gemini schema extraction
-      -> local sparse neural-signal layer
-      -> Rust deterministic enrichment
-      -> inference findings + quality gates
-      -> Cloud SQL Postgres typed persistence
+      -> Rust evidence verification
+      -> deterministic contradiction checks
+      -> local sparse conflict-signal layer
+      -> deterministic inference findings
+      -> quality gates and review questions
+      -> Cloud SQL typed persistence
       -> embedded one-page workbench
 ```
 
-Current live capabilities:
+The product is deliberately split:
 
-- `/api/perceive`
-- `/api/perceive/stream`
-- `/api/sessions`
-- `/api/sessions/{id}`
-- `/api/sessions/{id}/report.md`
-- `/api/schema`
-- `/readyz`
-- `/healthz`
+- The UI is small, direct, and demoable.
+- The Rust library stack is where the durable capability lives.
+- The API keeps the extraction and inference surfaces inspectable.
+- The storage layer keeps raw sessions compatible while adding typed primitives.
 
-The `/api/perceive` response now includes these conflict-vision layers in addition to the original extraction:
-
-- `document_profile`: format, segments, temporal markers, modality markers, pre-reading notes, conflict density, candidate review questions.
-- `neural_signals`: local Rust claim relatedness signals. The current deployed path uses a deterministic sparse fallback and exposes fastembed model capability discovery; full model-download mode is gated by environment.
-- `inferences`: deterministic findings such as denied obligations, contested/broken commitments, escalation loops, and repair openings.
-- `quality_gates`: evidence coverage, actor ambiguity, and conflict signal strength.
-- `review_questions`: questions a mediator/investigator should resolve before treating the map as decision-ready.
-
-## One-Page Workbench
-
-The UI is intentionally simple:
-
-- **Overview**: counts, summary, conflict graph
-- **Conflict vision lens**: pre-reading profile, quality gates, neural signals, review questions
-- **Actors**: canonical actors, aliases, relationships, power dynamics
-- **Friction**: actor x actor heat matrix with explainable drivers
-- **Contradictions**: side-by-side contradiction cards
-- **Evidence**: claims, events, commitments, patterns, evidence ledger
-- **Raw**: full JSON for audit/debugging
-
-No sprawling app shell. No generic chat surface. The page is a lens over the engine.
-
-## Rust Crates
+## Crate Map
 
 ```text
 crates/
-  aco-core/      typed primitives, EvidenceSpan, Provenance, IDs
-  aco-embed/     local sparse/neural claim relatedness signals; fastembed-ready
+  aco-core/      typed conflict primitives, EvidenceSpan, Provenance, IDs
+  aco-llm/       Vertex Gemini and mock extraction backends
+  aco-embed/     local sparse claim relatedness; optional fastembed-ready feature
   aco-fuse/      deterministic actor normalization and alias fusion
-  aco-infer/     deterministic inference findings and quality gates
-  aco-llm/       Vertex/Gemini and mock extraction backends
-  aco-storage/   Cloud SQL/Postgres persistence and evidence span recovery
-  aco-server/    Axum API, SSE pipeline, auth, embedded dashboard
-  aco-infer/     inference scaffolding
+  aco-infer/     deterministic findings, quality gates, review questions
+  aco-storage/   Postgres persistence, migrations, evidence span recovery
+  aco-server/    Axum API, SSE, Basic Auth, embedded one-page workbench
+  aco-perceive/  perception pipeline scaffolding
   aco-score/     scoring scaffolding
-  aco-learn/     correction/learning scaffolding
-  aco-cli/       CLI shell
+  aco-learn/     correction and learning scaffolding
+  aco-cli/       CLI entrypoint
   aco-bench/     benchmarks
 ```
 
-The current production path is `aco-server` + `aco-llm` + `aco-storage` + `aco-fuse` + `aco-core`.
-The v0.2 conflict-vision path also uses `aco-embed` and `aco-infer`.
-
-## Trust Core
-
-AGON uses a strict evidence posture:
-
-- Source text is persisted as a document/chunk with a deterministic hash.
-- Extracted primitives carry evidence quotes.
-- Storage resolves quote offsets with exact matching first.
-- If punctuation/case drift occurs, Rust attempts normalized span recovery.
-- If evidence cannot be aligned, it is marked unresolved.
-- The UI shows verified vs unresolved evidence.
-- Markdown reports preserve the session, summary, contradictions, evidence ledger, and source text.
-- Quality gates make uncertainty explicit instead of hiding it in prose.
-- Review questions capture what a human should verify next.
-
-## Neural Signal Posture
-
-AGON is designed to become local-neural where that improves conflict understanding, but the live deployment stays operationally conservative.
-
-Current implementation:
-
-- `aco-embed` computes local sparse semantic relatedness over claim pairs.
-- It discovers supported `fastembed` embedding/reranker families without forcing model downloads during normal Cloud Run startup.
-- Relatedness is never treated as truth by itself. It raises candidate pairs for deterministic contradiction and review logic.
-
-Environment controls:
-
-```text
-AGON_NEURAL_MODE=local_sparse        # default
-AGON_NEURAL_MAX_PAIRS=250
-AGON_NEURAL_MIN_SIM=0.62
-AGON_NEURAL_CACHE_DIR=<future model cache path>
-```
-
-This keeps the architecture ready for local BGE/fastembed reranking while preserving fast cold starts and predictable costs today.
-
-## Current Storage Model
+## Storage Model
 
 Typed MVP tables:
 
-- `sessions`
-- `documents`
-- `chunks`
-- `actors`
-- `actor_aliases`
-- `claims`
-- `events`
-- `commitments`
-- `patterns`
-- `contradictions`
-- `evidence_spans`
-- `graph_edges`
-- `document_segments`
-- `neural_signals`
-- `inference_findings`
-- `quality_gates`
+```text
+sessions
+documents
+chunks
+document_segments
+actors
+actor_aliases
+claims
+events
+commitments
+patterns
+contradictions
+evidence_spans
+graph_edges
+neural_signals
+inference_findings
+quality_gates
+```
 
-The old session-history shape remains compatible with the dashboard.
+The old `sessions` shape remains available for dashboard compatibility. Newer typed tables make evidence-backed querying and reports possible.
 
-## Research and Product Direction
+## Trust Posture
 
-The current blueprint lives in:
+AGON is built around auditability:
 
-- `docs/research/AGON_CONFLICT_INTELLIGENCE_BLUEPRINT.md`
-- `docs/AGON_CONFLICT_INTELLIGENCE_IMPLEMENTATION_BRIEF.md`
-- `docs/AGON_MVP_PLUS_PLAN.md`
+- Original source text is persisted with deterministic hashes.
+- Claims, events, commitments, and contradictions are linked to evidence.
+- Evidence quotes are checked against the source text.
+- Exact span matches are preferred.
+- Normalized span recovery is best-effort.
+- Unresolved evidence is marked unresolved, not hidden.
+- Quality gates identify weak extraction coverage and ambiguity.
+- Reports keep the source, findings, contradiction pairs, evidence, and review questions together.
 
-The guiding thesis is simple:
+AGON does not provide legal advice, guilt findings, settlement prediction, or autonomous mediation strategy. It creates a structured conflict map for professional review.
 
-> AGON is not AI summarization for disputes. AGON is an evidence-backed conflict primitive engine.
+## LLM and Neural Posture
+
+The live deployment uses Vertex AI Gemini through Google Cloud service-account auth. Users do not need to paste their own Gemini key into the hosted demo.
+
+Current local signal layer:
+
+```text
+AGON_NEURAL_MODE=local_sparse
+AGON_NEURAL_MAX_PAIRS=250
+AGON_NEURAL_MIN_SIM=0.62
+```
+
+`aco-embed` keeps heavier model-backed work optional. The default Cloud Run binary avoids ONNX runtime coupling so the service stays deployable, fast, and predictable. Future work can enable fastembed/BGE/reranker execution behind explicit features and runtime images built for that path.
 
 ## Local Development
+
+Prerequisites:
+
+- Rust toolchain from `rust-toolchain.toml`
+- PowerShell or equivalent shell
+- optional: `gcloud` for Vertex/Cloud Run work
+- optional: Postgres/Cloud SQL for persistence
+
+Clone and check:
 
 ```powershell
 git clone https://github.com/sargonxg/AGON.git
@@ -289,7 +264,7 @@ cargo check --workspace
 cargo test --workspace
 ```
 
-Run locally with the mock backend:
+Run locally with deterministic mock extraction:
 
 ```powershell
 $env:PORT="18080"
@@ -305,9 +280,20 @@ User: AGON
 Password: AGON
 ```
 
-## Deploy
+Run locally against Vertex AI with ADC:
 
-Current dev deployment target:
+```powershell
+gcloud auth application-default login
+$env:PORT="18080"
+$env:AGON_BACKEND="vertex"
+$env:AGON_GCP_PROJECT_ID="tacitus-agon-dev"
+$env:AGON_GCP_REGION="us-central1"
+cargo run -p aco-server --bin agon-server
+```
+
+## Deployment
+
+Current Cloud Run deployment target:
 
 ```text
 Project: tacitus-agon-dev
@@ -322,7 +308,19 @@ Build and deploy:
 $sha = (git rev-parse --short=12 HEAD)
 $image = "us-central1-docker.pkg.dev/tacitus-agon-dev/agon/agon-server:$sha"
 gcloud builds submit --project=tacitus-agon-dev --tag=$image .
-gcloud run deploy agon-dev --project=tacitus-agon-dev --region=us-central1 --image=$image --platform=managed --quiet
+gcloud run deploy agon-dev `
+  --project=tacitus-agon-dev `
+  --region=us-central1 `
+  --image=$image `
+  --platform=managed `
+  --quiet
+```
+
+Verify:
+
+```powershell
+$base = "https://agon-dev-tbryoen6qa-uc.a.run.app"
+Invoke-WebRequest "$base/readyz" -UseBasicParsing
 ```
 
 ## Verification Gates
@@ -341,38 +339,49 @@ node --check crates/aco-server/assets/app.js
 
 Expected audit posture today: `cargo audit` exits successfully with existing allowed warnings for unmaintained transitive crates.
 
+## Repository Guide
+
+Useful entry points:
+
+- [ARCHITECTURE.md](ARCHITECTURE.md): system architecture
+- [SETUP.md](SETUP.md): setup notes
+- [CONTRIBUTING.md](CONTRIBUTING.md): contribution workflow
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md): conduct expectations
+- [docs/AGON_MVP_PLUS_PLAN.md](docs/AGON_MVP_PLUS_PLAN.md): MVP+++ implementation plan
+- [docs/AGON_CONFLICT_INTELLIGENCE_IMPLEMENTATION_BRIEF.md](docs/AGON_CONFLICT_INTELLIGENCE_IMPLEMENTATION_BRIEF.md): implementation brief
+- [docs/research/AGON_CONFLICT_INTELLIGENCE_BLUEPRINT.md](docs/research/AGON_CONFLICT_INTELLIGENCE_BLUEPRINT.md): research blueprint
+
 ## Roadmap
 
 Near term:
 
-- stronger local fastembed/BGE reranker execution path behind `AGON_NEURAL_MODE=local`
-- NLI-style contradiction classifier evaluation as an optional Rust/ONNX sensor
-- deterministic denial/commitment/date contradiction expansion
-- richer typed persistence for relationships, power dynamics, escalation, and resolution openings
+- deeper deterministic contradiction rules for dates, order, and obligations
 - reviewed/unreviewed evidence workflow
-- stronger report exports
+- richer typed persistence for relationship states and power dynamics
+- optional local BGE/fastembed/reranker sensor path
+- NLI-style contradiction classifier evaluation
+- multi-document case folders
 - golden conflict examples and regression metrics
+- stronger JSON and Markdown report exports
 
 Later:
 
-- multi-document contradiction graphs
 - GraphRAG over verified primitives
-- temporal reasoning
+- temporal reasoning across many documents
 - human review queues
-- local embeddings for suggested alias clusters
+- reviewer correction loops
+- local embeddings for alias and claim clustering
+- integration-ready library API for external case systems
 
-Not yet:
+## Status
 
-- legal advice
-- guilt findings
-- settlement prediction
-- autonomous mediation strategy
-- broad enterprise RBAC/multitenancy
-- black-box scoring that cannot explain itself
+AGON is an active MVP. The live demo works with real pasted text and persists typed records when Cloud SQL is connected. The system is suitable for technical demos, product exploration, and early workflow design.
+
+It is not yet production-ready for regulated enterprise deployment. Missing pieces include full RBAC, tenancy boundaries, secret management for third-party user keys, formal data retention controls, and compliance review.
 
 ## License
 
-All rights reserved unless otherwise stated.
+All rights reserved unless otherwise stated. See [LICENSE](LICENSE).
 
 ```text
 TACITUS
