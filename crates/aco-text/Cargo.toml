@@ -1,0 +1,24 @@
+[package]
+name = "aco-text"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Canonical text processing for AGON: NFC, byte-offset map, segmentation, quote FSM."
+
+[dependencies]
+serde = { workspace = true }
+chrono = { workspace = true }
+blake3 = { workspace = true }
+thiserror = { workspace = true }
+unicode-normalization = { workspace = true }
+aho-corasick = { workspace = true }
+regex = { workspace = true }
+once_cell = { workspace = true }
+whatlang = { workspace = true }
+tacitus-contracts = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }

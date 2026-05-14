@@ -1,0 +1,16 @@
+[package]
+name = "aco-time"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Deterministic time expression extraction + Allen-13 algebra. No GPL deps."
+
+[dependencies]
+serde = { workspace = true }
+chrono = { workspace = true }
+regex = { workspace = true }
+thiserror = { workspace = true }
+tacitus-contracts = { workspace = true }

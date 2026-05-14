@@ -1,6 +1,10 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/tacitus-contracts",
+    "crates/aco-text",
+    "crates/aco-time",
+    "crates/aco-lex",
     "crates/aco-core",
     "crates/aco-llm",
     "crates/aco-embed",
@@ -94,7 +98,23 @@ mockall = "0.13"
 testcontainers = "0.23"
 testcontainers-modules = { version = "0.11", features = ["postgres"] }
 
+# JSON Schema / contracts
+jsonschema = "0.28"
+schemars = { version = "0.8", features = ["chrono", "uuid1"] }
+
+# Text processing
+unicode-normalization = "0.1"
+icu_normalizer = "1.5"
+icu_locid = "1.5"
+aho-corasick = "1"
+regex = "1"
+whatlang = "0.16"
+
 # Internal
+tacitus-contracts = { path = "crates/tacitus-contracts" }
+aco-text = { path = "crates/aco-text" }
+aco-time = { path = "crates/aco-time" }
+aco-lex = { path = "crates/aco-lex" }
 aco-core = { path = "crates/aco-core" }
 aco-llm = { path = "crates/aco-llm", default-features = false }
 aco-embed = { path = "crates/aco-embed" }

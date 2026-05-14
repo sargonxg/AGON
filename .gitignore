@@ -3,6 +3,10 @@
 Cargo.lock.bak
 .env
 .env.local
+.env.*.local
+secrets/
+*.key
+*.pem
 .DS_Store
 *.log
 /data/

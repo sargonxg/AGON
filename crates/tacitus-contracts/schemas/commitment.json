@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tacitus.me/schemas/v0/commitment.json",
+  "title": "Commitment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "committer", "subject", "state", "evidence_spans"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "committer": { "type": "string", "pattern": "^actor:[a-z0-9_-]+$" },
+    "beneficiary": { "type": ["string", "null"] },
+    "subject": { "type": "string", "minLength": 1 },
+    "deadline": { "type": ["string", "null"] },
+    "state": { "enum": ["made", "confirmed", "contested", "withdrawn", "fulfilled", "broken"] },
+    "evidence_spans": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "https://tacitus.me/schemas/v0/evidence_span.json" }
+    }
+  }
+}

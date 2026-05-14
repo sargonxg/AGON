@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tacitus.me/schemas/v0/provenance.json",
+  "title": "ProvenanceRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "parents",
+    "kind",
+    "content_hash",
+    "created_at",
+    "pipeline_version",
+    "model_versions",
+    "prompt_versions",
+    "schema_version"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "parents": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+    "kind": { "enum": ["raw_doc", "segment", "sensor_run", "primitive", "pattern", "inference", "report"] },
+    "content_hash": { "type": "string", "minLength": 1 },
+    "method_tag": {
+      "type": ["object", "null"],
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "name", "version"],
+          "properties": {
+            "kind": { "enum": ["sensor", "encoder"] },
+            "name": { "type": "string" },
+            "version": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "model_id", "prompt_hash", "temperature"],
+          "properties": {
+            "kind": { "const": "llm" },
+            "model_id": { "type": "string" },
+            "prompt_hash": { "type": "string" },
+            "temperature": { "type": "number" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "rule_id", "version"],
+          "properties": {
+            "kind": { "const": "rule" },
+            "rule_id": { "type": "string" },
+            "version": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "user_id"],
+          "properties": {
+            "kind": { "const": "human" },
+            "user_id": { "type": "string" }
+          }
+        }
+      ]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "pipeline_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "model_versions": { "type": "object", "additionalProperties": { "type": "string" } },
+    "prompt_versions": { "type": "object", "additionalProperties": { "type": "string" } },
+    "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" }
+  }
+}

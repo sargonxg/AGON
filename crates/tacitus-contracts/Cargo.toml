@@ -1,0 +1,24 @@
+[package]
+name = "tacitus-contracts"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Single source of truth for typed primitives across AGON, DIALECTICA, KAIROS. JSON Schema → Rust/Python/TS."
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+blake3 = { workspace = true }
+thiserror = { workspace = true }
+schemars = { workspace = true }
+jsonschema = { workspace = true }
+semver = { version = "1", features = ["serde"] }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+insta = { workspace = true }

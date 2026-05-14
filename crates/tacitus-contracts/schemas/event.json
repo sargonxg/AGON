@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tacitus.me/schemas/v0/event.json",
+  "title": "Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "label", "participants", "evidence_spans"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "label": { "type": "string", "minLength": 1 },
+    "participants": { "type": "array", "items": { "type": "string", "pattern": "^actor:[a-z0-9_-]+$" } },
+    "time": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["approximate", "raw"],
+      "properties": {
+        "start": { "type": ["string", "null"], "format": "date-time" },
+        "end": { "type": ["string", "null"], "format": "date-time" },
+        "approximate": { "type": "boolean" },
+        "raw": { "type": "string" }
+      }
+    },
+    "evidence_spans": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "https://tacitus.me/schemas/v0/evidence_span.json" }
+    }
+  }
+}

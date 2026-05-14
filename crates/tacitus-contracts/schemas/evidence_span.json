@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tacitus.me/schemas/v0/evidence_span.json",
+  "title": "EvidenceSpan",
+  "description": "Quad-form evidence span. Canonical + raw offsets travel together.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "segment_id",
+    "char_start_canonical",
+    "char_end_canonical",
+    "char_start_raw",
+    "char_end_raw",
+    "verbatim_quote",
+    "quote_hash",
+    "normalization_version"
+  ],
+  "properties": {
+    "segment_id": { "type": "string", "minLength": 1 },
+    "char_start_canonical": { "type": "integer", "minimum": 0 },
+    "char_end_canonical": { "type": "integer", "minimum": 0 },
+    "char_start_raw": { "type": "integer", "minimum": 0 },
+    "char_end_raw": { "type": "integer", "minimum": 0 },
+    "verbatim_quote": { "type": "string" },
+    "quote_hash": { "type": "string", "minLength": 1 },
+    "normalization_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" }
+  }
+}

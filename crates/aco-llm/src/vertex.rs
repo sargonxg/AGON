@@ -146,7 +146,7 @@ impl VertexAiBackend {
                 tok
             }
             _ => {
-                // Local dev: shell out to gcloud for a token.
+                // Local dev: shell out to gcloud for a token + its TTL.
                 let out = tokio::process::Command::new("gcloud")
                     .args(["auth", "application-default", "print-access-token"])
                     .output()
@@ -159,15 +159,58 @@ impl VertexAiBackend {
                     )));
                 }
                 let tok = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                // gcloud ADC tokens typically last ~3600s; we cache 3300s to leave a buffer.
+                // F-04 in AUDIT_2026-05-13.md: we don't have a way to read real expiry
+                // from `print-access-token` (it doesn't emit it); 3300s is a documented
+                // safe-margin guess. Switch to `print-identity-token` w/ JWT decode if we
+                // ever need real expiry.
                 let cached = CachedToken {
                     value: tok.clone(),
-                    expires_at: Instant::now() + Duration::from_secs(3000),
+                    expires_at: Instant::now() + Duration::from_secs(3300),
                 };
                 *self.token.write() = Some(cached);
                 tok
             }
         };
         Ok(token)
+    }
+
+    /// POST with bounded exponential backoff on transient 5xx.
+    /// Retries: 502, 503, 504. Respects Retry-After on 429 (single wait, no infinite loop).
+    async fn post_with_retry(
+        &self,
+        url: &str,
+        token: &str,
+        body: &GenerateRequest<'_>,
+    ) -> Result<reqwest::Response, LlmError> {
+        const MAX_ATTEMPTS: u32 = 3;
+        const INITIAL_DELAY_MS: u64 = 250;
+        const MAX_DELAY_MS: u64 = 4000;
+
+        let mut delay_ms = INITIAL_DELAY_MS;
+        for attempt in 1..=MAX_ATTEMPTS {
+            let resp = self
+                .http
+                .post(url)
+                .bearer_auth(token)
+                .json(body)
+                .send()
+                .await
+                .map_err(|e| LlmError::Http(e.to_string()))?;
+
+            let status = resp.status().as_u16();
+            let is_transient = matches!(status, 502 | 503 | 504);
+            if !is_transient || attempt == MAX_ATTEMPTS {
+                return Ok(resp);
+            }
+
+            // Drain body before retrying so connection can be reused.
+            let _ = resp.text().await;
+            tracing::warn!(attempt, status, delay_ms, "vertex transient error; retrying");
+            tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+            delay_ms = (delay_ms * 2).min(MAX_DELAY_MS);
+        }
+        unreachable!("retry loop must return on last attempt");
     }
 }
 
@@ -195,14 +238,8 @@ impl LlmBackend for VertexAiBackend {
             },
         };
 
-        let resp = self
-            .http
-            .post(&url)
-            .bearer_auth(&token)
-            .json(&body)
-            .send()
-            .await
-            .map_err(|e| LlmError::Http(e.to_string()))?;
+        // F-03: retry on transient 5xx (502/503/504). Bounded exponential backoff.
+        let resp = self.post_with_retry(&url, &token, &body).await?;
 
         let status = resp.status();
         if !status.is_success() {

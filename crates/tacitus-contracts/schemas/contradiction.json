@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tacitus.me/schemas/v0/contradiction.json",
+  "title": "Contradiction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "claim_a", "claim_b", "materiality", "rationale", "evidence_spans"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "claim_a": { "type": "string", "minLength": 1 },
+    "claim_b": { "type": "string", "minLength": 1 },
+    "materiality": { "enum": ["material", "cosmetic"] },
+    "rationale": { "type": "string" },
+    "evidence_spans": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "https://tacitus.me/schemas/v0/evidence_span.json" }
+    }
+  }
+}

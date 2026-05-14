@@ -1,5 +1,10 @@
 # AGON Build Ledger
 
+> **Note (2026-05-13):** MVP v0.1.0 sprint tracked below is shipped to dev (Cloud Run live).
+> The active workstream is now the **perception stack** — see `PERCEPTION_LEDGER.md`,
+> driven by `docs/BUILD_PLAN_PERCEPTION.md`. External deps: `docs/EXTERNALS.md`.
+> Target topology: `docs/DEPLOYMENT_GCP.md`. State: `STATE.json`.
+
 **MVP target:** v0.1.0 — three-sprint GCP-native build per `BUILDPLAN.md`.
 **Started:** 2026-05-10
 **Spec version:** v3 (GCP-native; supersedes local-dev v2 plan)

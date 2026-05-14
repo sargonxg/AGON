@@ -1,0 +1,17 @@
+[package]
+name = "aco-lex"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Lexical feature extraction: hedging, modality, agency, face-work, register."
+
+[dependencies]
+serde = { workspace = true }
+thiserror = { workspace = true }
+regex = { workspace = true }
+aho-corasick = { workspace = true }
+once_cell = { workspace = true }
+tacitus-contracts = { workspace = true }

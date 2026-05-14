@@ -1,0 +1,56 @@
+# aco-llm routing — Gemini-only.
+# Edited at: 2026-05-13. Decision: drop Anthropic + OpenAI backends.
+# Cross-validation happens between Gemini Flash (primary) and Gemini Pro (adjudication),
+# at different temperatures / prompt versions.
+
+[extraction.actor]
+primary = "gemini-2.5-flash"
+adjudication_threshold = 0.7
+adjudication = "gemini-2.5-pro"
+
+[extraction.claim]
+primary = "gemini-2.5-flash"
+adjudication_threshold = 0.7
+adjudication = "gemini-2.5-pro"
+cross_validation = "gemini-2.5-flash"
+cross_validation_temperature = 0.7  # diversity probe — same model, different sampling
+
+[extraction.event]
+primary = "gemini-2.5-flash"
+adjudication_threshold = 0.7
+adjudication = "gemini-2.5-pro"
+
+[extraction.commitment]
+primary = "gemini-2.5-flash"
+adjudication_threshold = 0.6  # commitments are high-stakes — adjudicate more
+adjudication = "gemini-2.5-pro"
+
+[extraction.contradiction]
+primary = "gemini-2.5-flash"
+adjudication_threshold = 0.5  # always adjudicate contradictions
+adjudication = "gemini-2.5-pro"
+
+[extraction.narrative_frame]
+primary = "gemini-2.5-pro"  # framing is hard; start at Pro
+
+[extraction.interest]
+primary = "gemini-2.5-flash"
+note = "interests are inferred — confidence inherently low; do not adjudicate by default"
+
+[extraction.leverage]
+primary = "gemini-2.5-flash"
+
+[budgets]
+# Per-folder cost cap (USD). Backends enforce via BudgetGuard middleware (PROMPT 06).
+per_folder_usd = 0.50
+per_day_usd = 50.00
+abort_on_breach = true
+
+[retry]
+# Bounded exponential backoff for transient 5xx (F-03 in AUDIT_2026-05-13.md).
+max_attempts = 3
+initial_delay_ms = 250
+multiplier = 2.0
+max_delay_ms = 4000
+retry_status_codes = [502, 503, 504]
+respect_retry_after_on_429 = true

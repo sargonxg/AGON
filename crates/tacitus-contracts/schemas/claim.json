@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tacitus.me/schemas/v0/claim.json",
+  "title": "Claim",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "asserter", "text", "polarity", "modality", "evidence_spans", "raw_confidence"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "asserter": { "type": "string", "pattern": "^actor:[a-z0-9_-]+$" },
+    "text": { "type": "string", "minLength": 1 },
+    "polarity": { "enum": ["affirm", "deny", "hedge"] },
+    "modality": { "enum": ["factual", "normative", "evaluative", "predictive"] },
+    "evidence_spans": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "https://tacitus.me/schemas/v0/evidence_span.json" }
+    },
+    "raw_confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+  }
+}
