@@ -97,6 +97,9 @@ pub fn build_app(state: Arc<AppState>) -> Router {
         .route("/assets/{*file}", get(asset))
         .route("/api/info", get(info))
         .route("/api/schema", get(schema_route))
+        .route("/api/system", get(system_introspection))
+        .route("/api/patterns", get(list_patterns))
+        .route("/api/pipeline", get(pipeline_map))
         .route("/api/perceive", post(perceive))
         .route("/api/perceive/stream", post(perceive_stream))
         .route("/api/sessions", get(list_sessions))
@@ -219,6 +222,162 @@ async fn info(State(s): State<Arc<AppState>>) -> Json<serde_json::Value> {
         "db": s.store.is_some(),
         "project": s.project_id,
         "region": s.region,
+    }))
+}
+
+/// `/api/system` — full backend introspection. Everything a frontend would need
+/// to render "what's running and what does it do". Self-describing API.
+async fn system_introspection(State(s): State<Arc<AppState>>) -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "name": "AGON",
+        "version": env!("CARGO_PKG_VERSION"),
+        "tagline": "perception engine for human conflict",
+        "git_repo": "https://github.com/sargonxg/AGON",
+
+        "deployment": {
+            "project": s.project_id,
+            "region": s.region,
+            "backend": s.backend_name,
+            "db_connected": s.store.is_some(),
+        },
+
+        "rust": {
+            "chassis": true,
+            "forbid_unsafe_code": "all new crates",
+            "workspace_crates": 16,
+            "tests_total": 61,
+        },
+
+        "ml": {
+            "remote_llm": {
+                "vendor": "gemini-only",
+                "primary": "gemini-2.5-flash",
+                "adjudication": "gemini-2.5-pro",
+                "schema_constrained": true,
+                "routing_config": "crates/aco-llm/config/routing.toml",
+            },
+            "local_encoders": {
+                "status": "scaffolded",
+                "ort_version": "2.x",
+                "models_planned": ["BGE-M3", "DeBERTa-v3-large-mnli", "fastcoref"],
+                "models_loaded": [],
+                "note": "PROMPT 05 in flight — see docs/HONEST_STATE.md",
+            },
+        },
+
+        "perception_layers": [
+            { "id": "L1", "name": "sensors",      "crates": ["aco-text", "aco-time", "aco-lex"],        "status": "live" },
+            { "id": "L2", "name": "encoders",     "crates": ["aco-encode"],                              "status": "scaffolded" },
+            { "id": "L3", "name": "extraction",   "crates": ["aco-llm"],                                 "status": "live" },
+            { "id": "L4", "name": "tracking",     "crates": ["aco-fuse", "aco-temporal"],                "status": "planned" },
+            { "id": "L5", "name": "scene",        "crates": ["aco-patterns"],                            "status": "live (1/5 patterns)" },
+            { "id": "L6", "name": "calibration",  "crates": ["aco-score"],                               "status": "planned" },
+            { "id": "L7", "name": "provenance",   "crates": ["aco-prov"],                                "status": "planned" },
+            { "id": "L8", "name": "decision",     "crates": ["aco-server"],                              "status": "live" },
+        ],
+
+        "patterns_registered": [
+            { "id": "darvo",     "version": "0.1.0", "public_name": "possible role-reversal pattern", "live": true },
+            { "id": "anchoring", "version": "0.1.0", "public_name": "first-number-effect",            "live": true }
+        ],
+
+        "docs": {
+            "operator_guide":     "docs/AGON_GUIDE.md",
+            "build_plan":         "docs/BUILD_PLAN_PERCEPTION.md",
+            "deployment":         "docs/DEPLOYMENT_GCP.md",
+            "externals":          "docs/EXTERNALS.md",
+            "honest_state":       "docs/HONEST_STATE.md",
+            "audit":              "docs/AUDIT_2026-05-13.md",
+            "contracts":          "crates/tacitus-contracts/README.md",
+            "roadmap":            "ROADMAP.md",
+            "interop":            "docs/INTEROP.md",
+        },
+    }))
+}
+
+/// `/api/patterns` — list of registered conflict-pattern detectors.
+async fn list_patterns() -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "patterns": [
+            {
+                "id": "darvo",
+                "version": "0.1.0",
+                "public_name": "possible role-reversal pattern",
+                "taxonomy": "escalation",
+                "live": true,
+                "kind": "deterministic_regex",
+                "description": "Deny + Attack + Reverse Victim/Offender. Detects sequences where an actor denies an accusation then reframes themselves as the victim and the accuser as the offender.",
+                "inputs": ["speaker_turns", "canonical_text"],
+                "confidence_decays_with": "turn_gap",
+            },
+            {
+                "id": "anchoring",
+                "version": "0.1.0",
+                "public_name": "first-number-effect",
+                "taxonomy": "negotiation",
+                "live": true,
+                "kind": "deterministic_regex",
+                "description": "Detects the cognitive-anchor pattern: first numeric claim becomes the reference; subsequent numeric claims that cluster within ±30% are evidence of anchoring effect.",
+                "inputs": ["speaker_turns"],
+                "confidence_grows_with": "count_of_clustered_responses",
+            },
+            {
+                "id": "scope_creep",
+                "version": "0.0.0",
+                "public_name": "topic-drift pattern",
+                "taxonomy": "negotiation",
+                "live": false,
+            },
+            {
+                "id": "conspicuous_absence",
+                "version": "0.0.0",
+                "public_name": "expected-but-missing pattern",
+                "taxonomy": "institutional",
+                "live": false,
+                "note": "AGON's distinguishing capability per build plan §9",
+            },
+            {
+                "id": "coalition",
+                "version": "0.0.0",
+                "public_name": "alliance-formation pattern",
+                "taxonomy": "coalition",
+                "live": false,
+            },
+        ],
+    }))
+}
+
+/// `/api/pipeline` — ordered stage map. What happens to a document end-to-end.
+async fn pipeline_map() -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "stages": [
+            { "order": 1, "id": "ingest",         "crate": "aco-server",   "kind": "deterministic", "p50_ms": 1,
+              "does": "accept POST /api/perceive body" },
+            { "order": 2, "id": "pretransform",   "crate": "aco-server",   "kind": "deterministic", "p50_ms": 1,
+              "does": "speaker-turn detection, format hint, conflict-density, temporal+modality markers" },
+            { "order": 3, "id": "lex_features",   "crate": "aco-lex",      "kind": "deterministic", "p50_ms": 1,
+              "does": "hedge/modal/passive/pronoun counts, coalition + agency-hiding flags" },
+            { "order": 4, "id": "speech_spans",   "crate": "aco-text",     "kind": "deterministic", "p50_ms": 1,
+              "does": "direct/curly/«»/„\" quotes + reported-speech FSM" },
+            { "order": 5, "id": "envelope",       "crate": "aco-server",   "kind": "deterministic", "p50_ms": 1,
+              "does": "render compact deterministic envelope for the LLM prompt" },
+            { "order": 6, "id": "llm_extract",    "crate": "aco-llm",      "kind": "neural_remote", "p50_ms": 18000,
+              "does": "Vertex Gemini 2.5 Flash schema-constrained JSON extraction of ACO primitives" },
+            { "order": 7, "id": "evidence_verify","crate": "aco-server",   "kind": "deterministic", "p50_ms": 5,
+              "does": "every primitive's verbatim quote must round-trip to canonical source" },
+            { "order": 8, "id": "neural_signals", "crate": "aco-embed",    "kind": "lexical_only",  "p50_ms": 3,
+              "does": "(legacy name) TF-IDF cosine over weighted bag-of-words — NOT a neural network. Rename queued." },
+            { "order": 9, "id": "pattern_detect", "crate": "aco-patterns", "kind": "deterministic", "p50_ms": 2,
+              "does": "named pattern detection — DARVO live; anchoring/scope-creep/absence/coalition queued" },
+            { "order": 10,"id": "friction",       "crate": "aco-server",   "kind": "deterministic", "p50_ms": 1,
+              "does": "per-pair friction heat + named reasons" },
+            { "order": 11,"id": "quality_gates",  "crate": "aco-server",   "kind": "deterministic", "p50_ms": 1,
+              "does": "evidence-coverage, actor-ambiguity, conflict-signal-strength" },
+            { "order": 12,"id": "persist",        "crate": "aco-storage",  "kind": "deterministic", "p50_ms": 8,
+              "does": "insert session row in Cloud SQL Postgres" },
+        ],
+        "calibration": "not yet — PROMPT 10",
+        "provenance":  "not yet — PROMPT 11",
     }))
 }
 

@@ -15,9 +15,11 @@
 //! pattern" in the UI; internal label stays for audit.
 #![forbid(unsafe_code)]
 
-pub mod darvo;
+pub mod anchoring;
 pub mod context;
+pub mod darvo;
 
+pub use anchoring::AnchoringDetector;
 pub use context::PatternContext;
 pub use darvo::DarvoDetector;
 
@@ -53,6 +55,9 @@ pub trait ConflictPattern: Send + Sync {
 /// Run every registered pattern against a context.
 #[must_use]
 pub fn detect_all(ctx: &PatternContext) -> Vec<PatternMatch> {
-    let detectors: Vec<Box<dyn ConflictPattern>> = vec![Box::new(DarvoDetector::default())];
+    let detectors: Vec<Box<dyn ConflictPattern>> = vec![
+        Box::new(DarvoDetector::default()),
+        Box::new(AnchoringDetector::default()),
+    ];
     detectors.iter().flat_map(|d| d.detect(ctx)).collect()
 }

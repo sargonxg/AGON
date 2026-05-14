@@ -1,0 +1,39 @@
+//! aco-encode — local neural encoders behind a typed Rust trait.
+//!
+//! Status (PROMPT 05 v0.1, 2026-05-14):
+//! - `Encoder` trait + `EmbedResult` + `NliResult` types defined.
+//! - `BgeM3Encoder` and `DebertaNliEncoder` stubs with download+cache plumbing.
+//! - Real ONNX inference gated behind the `onnx` feature so the default
+//!   workspace build does not require ONNX Runtime native libs.
+//! - HuggingFace download uses the `HF_TOKEN` env var (Secret Manager).
+//!
+//! See `docs/HONEST_STATE.md` — neural inference is not yet running in production.
+//! This crate is the path to flipping `local_encoders.status` from "scaffolded"
+//! to "live".
+#![forbid(unsafe_code)]
+
+pub mod download;
+pub mod traits;
+
+#[cfg(feature = "onnx")]
+pub mod bge_m3;
+#[cfg(feature = "onnx")]
+pub mod deberta_nli;
+
+pub use traits::{EmbedResult, Encoder, EncodeError, NliLabel, NliResult};
+
+#[cfg(feature = "onnx")]
+pub use bge_m3::BgeM3Encoder;
+#[cfg(feature = "onnx")]
+pub use deberta_nli::DebertaNliEncoder;
+
+/// Build info — what's loaded at runtime.
+#[must_use]
+pub fn build_info() -> serde_json::Value {
+    serde_json::json!({
+        "crate": "aco-encode",
+        "version": env!("CARGO_PKG_VERSION"),
+        "onnx_feature": cfg!(feature = "onnx"),
+        "models_planned": ["BGE-M3", "DeBERTa-v3-large-mnli", "fastcoref"],
+    })
+}

@@ -6,6 +6,7 @@ members = [
     "crates/aco-time",
     "crates/aco-lex",
     "crates/aco-patterns",
+    "crates/aco-encode",
     "crates/aco-core",
     "crates/aco-llm",
     "crates/aco-embed",
@@ -117,6 +118,7 @@ aco-text = { path = "crates/aco-text" }
 aco-time = { path = "crates/aco-time" }
 aco-lex = { path = "crates/aco-lex" }
 aco-patterns = { path = "crates/aco-patterns" }
+aco-encode = { path = "crates/aco-encode" }
 aco-core = { path = "crates/aco-core" }
 aco-llm = { path = "crates/aco-llm", default-features = false }
 aco-embed = { path = "crates/aco-embed" }
