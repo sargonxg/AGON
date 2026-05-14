@@ -158,8 +158,78 @@ Both sides deny trying to evade process, but both are searching for language tha
     const info = await r.json();
     $('backend').textContent = info.backend + ' · ' + info.project + (info.db ? ' · 💾' : ' · stateless');
   } catch (_) {}
+  loadBackendStrip();
   loadHistory();
 })();
+
+async function loadBackendStrip() {
+  try {
+    const [sys, pats, pipe] = await Promise.all([
+      fetch('/api/system').then(r => r.json()),
+      fetch('/api/patterns').then(r => r.json()),
+      fetch('/api/pipeline').then(r => r.json()),
+    ]);
+    const liveCount = (sys.patterns_registered || []).filter(p => p.live).length;
+    $('bs-version').textContent = sys.version || '?';
+    $('bs-crates').textContent = sys.rust?.workspace_crates ?? '?';
+    $('bs-tests').textContent = sys.rust?.tests_total ?? '?';
+    $('bs-patterns').textContent = `${liveCount}/${(sys.patterns_registered || []).length}`;
+    $('bs-llm').textContent = sys.ml?.remote_llm?.primary || 'gemini';
+    $('bs-encoders').textContent = sys.ml?.local_encoders?.status || 'scaffolded';
+
+    // Layers
+    $('bp-layers').innerHTML = (sys.perception_layers || []).map(l => `
+      <div class="bp-row">
+        <span class="bp-id">${esc(l.id)}</span>
+        <span class="bp-name">${esc(l.name)}</span>
+        <span class="bp-status bp-${(l.status || '').split(' ')[0]}">${esc(l.status)}</span>
+        <span class="bp-crates">${esc((l.crates || []).join(', '))}</span>
+      </div>
+    `).join('');
+
+    // Patterns
+    $('bp-patterns').innerHTML = (pats.patterns || []).map(p => `
+      <div class="bp-row">
+        <span class="bp-pat">${p.live ? '✓' : '○'} ${esc(p.id)}</span>
+        <span class="bp-pub">${esc(p.public_name || '')}</span>
+        ${p.description ? `<div class="bp-desc">${esc(p.description)}</div>` : ''}
+      </div>
+    `).join('');
+
+    // ML
+    $('bp-ml').innerHTML = `
+      <div class="bp-row"><strong>remote LLM:</strong> ${esc(sys.ml?.remote_llm?.vendor || '?')} · primary ${esc(sys.ml?.remote_llm?.primary || '?')} · adj ${esc(sys.ml?.remote_llm?.adjudication || '?')}</div>
+      <div class="bp-row"><strong>local encoders:</strong> ${esc(sys.ml?.local_encoders?.status || '?')} · planned: ${esc((sys.ml?.local_encoders?.models_planned || []).join(', '))}</div>
+      <div class="bp-row"><strong>schema-constrained:</strong> ${sys.ml?.remote_llm?.schema_constrained ? 'yes' : 'no'}</div>
+    `;
+
+    // Pipeline
+    $('bp-pipeline').innerHTML = (pipe.stages || []).map(s => `
+      <div class="bp-stage">
+        <span class="bp-stage-n">${s.order}</span>
+        <span class="bp-stage-id">${esc(s.id)}</span>
+        <span class="bp-stage-kind bp-kind-${(s.kind || '').split('_')[0]}">${esc(s.kind)}</span>
+        <span class="bp-stage-crate">${esc(s.crate || '')}</span>
+        <span class="bp-stage-ms">p50 ${s.p50_ms}ms</span>
+      </div>
+    `).join('');
+  } catch (e) {
+    console.warn('backend introspection failed', e);
+  }
+}
+
+document.getElementById('bs-expand')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  const panel = $('backend-panel');
+  panel.classList.toggle('hidden');
+  e.target.textContent = panel.classList.contains('hidden') ? 'show details ↓' : 'hide details ↑';
+});
+document.getElementById('open-backend')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  $('backend-panel').classList.remove('hidden');
+  document.getElementById('bs-expand').textContent = 'hide details ↑';
+  $('backend-panel').scrollIntoView({behavior: 'smooth'});
+});
 
 document.getElementById('refresh-history')?.addEventListener('click', loadHistory);
 document.querySelectorAll('.tab').forEach(tab => {
@@ -278,6 +348,7 @@ function handleSseFrame(frame) {
     render(payload.extraction);
     renderHeatmap(payload.friction_matrix, payload.extraction);
     renderPreCanon(payload.pre_canonical);
+    renderNamedPatterns(payload.patterns_detected);
     loadHistory();
   } else if (evt === 'error') {
     markPriorDone();
@@ -336,6 +407,30 @@ function setStatus(msg, err) {
   const el = $('status');
   el.textContent = msg;
   el.className = 'status' + (err ? ' err' : '');
+}
+
+function renderNamedPatterns(patterns) {
+  const el = $('named-patterns');
+  if (!el) return;
+  if (!patterns || patterns.length === 0) {
+    el.innerHTML = '<div class="meta">no named patterns detected in this text</div>';
+    return;
+  }
+  el.innerHTML = patterns.map(p => {
+    const conf = (p.raw_confidence ?? 0).toFixed(2);
+    const evid = (p.evidence_excerpts || []).map(e => `<code>"${esc(e)}"</code>`).join(' · ');
+    const actors = (p.actors_involved || []).map(esc).join(', ');
+    return `<div class="np-card">
+      <div class="np-head">
+        <span class="np-pub">${esc(p.public_name || p.pattern_id)}</span>
+        <span class="np-id">[${esc(p.pattern_id)} v${esc(p.pattern_version)}]</span>
+        <span class="np-conf" data-conf="${conf}">conf ${conf}</span>
+      </div>
+      ${actors ? `<div class="np-actors">actors: ${actors}</div>` : ''}
+      ${evid ? `<div class="np-evid">evidence: ${evid}</div>` : ''}
+      <div class="np-why">${esc(p.explanation || '')}</div>
+    </div>`;
+  }).join('');
 }
 
 function render(x) {

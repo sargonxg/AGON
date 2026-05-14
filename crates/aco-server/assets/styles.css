@@ -320,3 +320,86 @@ footer {
   .claim-pair { grid-template-columns: 1fr; }
   .evidence-coverage { grid-template-columns: 1fr; }
 }
+
+/* === v0.1.5 — Backend strip + introspection panel + Named patterns === */
+
+.backend-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 10px 24px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid var(--border, #2a2a30);
+  font-size: 12px;
+  color: var(--muted, #8a8a90);
+  align-items: center;
+}
+.bs-item strong { color: var(--text, #e8e8ea); font-weight: 600; margin-right: 4px; }
+.bs-expand { margin-left: auto; color: var(--accent, #ff7a3d); text-decoration: none; font-size: 12px; }
+.bs-expand:hover { text-decoration: underline; }
+
+.backend-panel {
+  padding: 18px 24px 24px;
+  background: rgba(255,255,255,0.025);
+  border-bottom: 1px solid var(--border, #2a2a30);
+}
+.backend-panel h3 { margin: 0 0 12px; font-size: 16px; }
+.backend-panel h4 { margin: 0 0 8px; font-size: 13px; color: var(--muted, #8a8a90); text-transform: uppercase; letter-spacing: 0.08em; }
+.bp-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+.bp-col { min-width: 0; }
+.bp-row { display: flex; flex-wrap: wrap; gap: 6px 10px; padding: 6px 0; font-size: 13px; border-bottom: 1px dashed rgba(255,255,255,0.06); }
+.bp-row:last-child { border-bottom: none; }
+.bp-id { font-family: monospace; color: var(--accent, #ff7a3d); width: 32px; }
+.bp-name { font-weight: 600; width: 110px; }
+.bp-status { font-size: 11px; padding: 1px 8px; border-radius: 3px; }
+.bp-status.live { background: rgba(80,200,120,0.2); color: #6ad17e; }
+.bp-status.scaffolded { background: rgba(255,170,60,0.2); color: #ffc56a; }
+.bp-status.planned { background: rgba(150,150,160,0.15); color: var(--muted, #8a8a90); }
+.bp-crates { font-family: monospace; font-size: 11px; color: var(--muted, #8a8a90); }
+.bp-pat { font-weight: 600; }
+.bp-pub { color: var(--muted, #8a8a90); font-size: 12px; font-style: italic; }
+.bp-desc { font-size: 12px; color: var(--muted, #8a8a90); flex-basis: 100%; padding-left: 16px; }
+.bp-stage { display: grid; grid-template-columns: 24px 1fr 80px 110px 70px; gap: 8px; padding: 4px 0; font-size: 12px; border-bottom: 1px dashed rgba(255,255,255,0.05); align-items: center; }
+.bp-stage-n { color: var(--muted, #8a8a90); font-family: monospace; }
+.bp-stage-id { font-weight: 600; }
+.bp-stage-kind { font-size: 10px; padding: 1px 6px; border-radius: 3px; text-align: center; }
+.bp-kind-deterministic { background: rgba(80,200,255,0.15); color: #6ac3ff; }
+.bp-kind-neural { background: rgba(200,120,255,0.18); color: #c890ff; }
+.bp-kind-lexical { background: rgba(255,200,60,0.15); color: #ffc56a; }
+.bp-stage-crate { font-family: monospace; font-size: 11px; color: var(--muted, #8a8a90); }
+.bp-stage-ms { font-family: monospace; font-size: 11px; color: var(--muted, #8a8a90); text-align: right; }
+.bp-foot { margin: 14px 0 0; font-size: 12px; color: var(--muted, #8a8a90); }
+.bp-foot code { background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+
+/* Named patterns panel */
+.named-patterns { margin-top: 16px; }
+.named-patterns h3 { display: flex; align-items: center; gap: 10px; }
+.np-help { font-size: 11px; font-weight: 400; color: var(--muted, #8a8a90); cursor: help; }
+.named-patterns-list { display: flex; flex-direction: column; gap: 10px; }
+.np-card {
+  background: linear-gradient(180deg, rgba(255,122,61,0.06) 0%, rgba(255,122,61,0.02) 100%);
+  border: 1px solid rgba(255,122,61,0.25);
+  border-left: 3px solid var(--accent, #ff7a3d);
+  padding: 12px 14px;
+  border-radius: 4px;
+}
+.np-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.np-pub { font-weight: 700; font-size: 15px; color: var(--text, #e8e8ea); }
+.np-id { font-family: monospace; font-size: 11px; color: var(--muted, #8a8a90); }
+.np-conf {
+  margin-left: auto;
+  font-family: monospace;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.08);
+}
+.np-actors { margin-top: 6px; font-size: 12px; color: var(--muted, #8a8a90); }
+.np-evid { margin-top: 6px; font-size: 12px; }
+.np-evid code { background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 3px; font-size: 11px; color: var(--text, #e8e8ea); }
+.np-why { margin-top: 8px; font-size: 13px; color: var(--text, #e8e8ea); line-height: 1.45; }
+
+@media (max-width: 1000px) {
+  .bp-grid { grid-template-columns: 1fr; }
+  .backend-strip { gap: 12px; font-size: 11px; }
+}

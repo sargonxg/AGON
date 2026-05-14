@@ -10,10 +10,41 @@
 <header>
   <div class="brand">
     <div class="logo">AGON</div>
-    <div class="tagline">Evidence-backed conflict intelligence · protected workbench · <span id="backend">…</span></div>
+    <div class="tagline">Evidence-backed conflict intelligence · <span id="backend">…</span></div>
   </div>
-  <nav><a href="https://github.com/sargonxg/AGON" target="_blank" rel="noopener">github</a><span class="dot">·</span><a href="/readyz">status</a></nav>
+  <nav><a href="https://github.com/sargonxg/AGON" target="_blank" rel="noopener">github</a><span class="dot">·</span><a href="#" id="open-backend">backend</a><span class="dot">·</span><a href="/readyz">status</a></nav>
 </header>
+
+<div id="backend-strip" class="backend-strip">
+  <span class="bs-item"><strong id="bs-version">…</strong> live revision</span>
+  <span class="bs-item"><strong id="bs-crates">…</strong> Rust crates</span>
+  <span class="bs-item"><strong id="bs-tests">…</strong> tests green</span>
+  <span class="bs-item"><strong id="bs-patterns">…</strong> patterns live</span>
+  <span class="bs-item"><strong id="bs-llm">…</strong> remote LLM</span>
+  <span class="bs-item"><strong id="bs-encoders">…</strong> local encoders</span>
+  <a href="#" id="bs-expand" class="bs-expand">show details ↓</a>
+</div>
+
+<div id="backend-panel" class="backend-panel hidden">
+  <h3>What's running in this backend</h3>
+  <div class="bp-grid">
+    <div class="bp-col">
+      <h4>Perception layers (L1–L8)</h4>
+      <div id="bp-layers"></div>
+    </div>
+    <div class="bp-col">
+      <h4>Patterns registered</h4>
+      <div id="bp-patterns"></div>
+    </div>
+    <div class="bp-col">
+      <h4>ML strategy</h4>
+      <div id="bp-ml"></div>
+      <h4 style="margin-top:18px">Pipeline (12 stages)</h4>
+      <div id="bp-pipeline"></div>
+    </div>
+  </div>
+  <p class="bp-foot">All this is live JSON from <code>GET /api/system</code> + <code>/api/patterns</code> + <code>/api/pipeline</code>. Any frontend can render it. See <a href="https://github.com/sargonxg/AGON/blob/main/docs/DEMO_RECIPES.md" target="_blank">DEMO_RECIPES.md</a> for curl recipes.</p>
+</div>
 
 <main>
   <section class="intake">
@@ -84,6 +115,11 @@
         <div class="card"><h3>Events</h3><div id="n-events" class="big">—</div></div>
         <div class="card"><h3>Patterns</h3><div id="n-patterns" class="big">—</div></div>
         <div class="card"><h3>Contradictions</h3><div id="n-contras" class="big">—</div></div>
+      </div>
+
+      <div class="panel wide named-patterns" id="named-patterns-panel">
+        <h3>Named patterns detected  <span class="np-help" title="Deterministic Rust detectors ran pre-LLM. Each pattern has a versioned id, verbatim evidence quotes, and raw confidence (calibration pending in PROMPT 10).">ⓘ what is this?</span></h3>
+        <div id="named-patterns" class="named-patterns-list"><div class="meta">no patterns yet — run a perception</div></div>
       </div>
       <div class="summary">
         <h3>Executive conflict read</h3>
