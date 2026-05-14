@@ -17,6 +17,7 @@ aco-embed = { workspace = true }
 aco-infer = { workspace = true }
 aco-lex = { workspace = true }
 aco-llm = { workspace = true }
+aco-patterns = { workspace = true }
 aco-storage = { workspace = true }
 aco-text = { workspace = true }
 tokio = { workspace = true }

@@ -146,6 +146,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "aco-patterns"
+version = "0.1.0"
+dependencies = [
+ "aco-lex",
+ "aco-text",
+ "once_cell",
+ "regex",
+ "serde",
+ "serde_json",
+ "tacitus-contracts",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "aco-perceive"
 version = "0.1.0"
 dependencies = [
@@ -187,6 +201,7 @@ dependencies = [
  "aco-infer",
  "aco-lex",
  "aco-llm",
+ "aco-patterns",
  "aco-storage",
  "aco-text",
  "anyhow",

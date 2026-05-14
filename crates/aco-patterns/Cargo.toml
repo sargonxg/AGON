@@ -1,0 +1,19 @@
+[package]
+name = "aco-patterns"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Named conflict patterns: DARVO, anchoring, scope creep, conspicuous absence, coalition."
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+regex = { workspace = true }
+once_cell = { workspace = true }
+tacitus-contracts = { workspace = true }
+aco-text = { workspace = true }
+aco-lex = { workspace = true }

@@ -667,6 +667,10 @@ struct PerceiveResponse {
     inferences: serde_json::Value,
     quality_gates: serde_json::Value,
     review_questions: serde_json::Value,
+    /// Named conflict patterns detected by `aco-patterns` (DARVO etc.).
+    /// Distinct from `inferences` (which are deterministic post-LLM findings).
+    #[serde(default)]
+    patterns_detected: Vec<serde_json::Value>,
     extraction: serde_json::Value,
 }
 
@@ -717,7 +721,7 @@ async fn perceive(
             input_tokens: resp.input_tokens as i32,
             output_tokens: resp.output_tokens as i32,
             elapsed_ms: elapsed.as_millis() as i64,
-            source_text,
+            source_text: source_text.clone(),
             friction_score: friction,
             n_actors: count("actors"),
             n_claims: count("claims"),
@@ -736,6 +740,9 @@ async fn perceive(
         }
     }
 
+    // Pattern detection — runs deterministically over canonical text + speaker turns.
+    let patterns_detected = run_patterns(&source_text, &pc);
+
     Ok(Json(PerceiveResponse {
         session_id,
         elapsed_ms: elapsed.as_millis(),
@@ -750,8 +757,34 @@ async fn perceive(
         inferences: x.get("inferences").cloned().unwrap_or_default(),
         quality_gates: x.get("quality_gates").cloned().unwrap_or_default(),
         review_questions: x.get("review_questions").cloned().unwrap_or_default(),
+        patterns_detected,
         extraction,
     }))
+}
+
+/// Map the server's PreCanonical turns into `aco_patterns::context::Turn` and
+/// run every registered detector. Returns JSON-shaped matches for the client.
+fn run_patterns(source_text: &str, pc: &PreCanonical) -> Vec<serde_json::Value> {
+    use aco_patterns::context::Turn as PTurn;
+    let pturns: Vec<PTurn> = pc
+        .turns
+        .iter()
+        .map(|t| PTurn {
+            idx: t.idx,
+            speaker: t.speaker.clone(),
+            body: t.body.clone(),
+            char_offset: t.char_offset,
+        })
+        .collect();
+    let speech = aco_text::detect_speech(source_text);
+    let speaker_turns = aco_text::detect_turns(source_text);
+    let lex = aco_lex::extract_en(source_text);
+    let ctx =
+        aco_patterns::PatternContext::new(source_text, &pturns, &speech, &speaker_turns, &lex);
+    aco_patterns::detect_all(&ctx)
+        .into_iter()
+        .filter_map(|m| serde_json::to_value(m).ok())
+        .collect()
 }
 
 /// Server-Sent Events stream of pipeline stages with live per-stage timing.

@@ -5,6 +5,7 @@ members = [
     "crates/aco-text",
     "crates/aco-time",
     "crates/aco-lex",
+    "crates/aco-patterns",
     "crates/aco-core",
     "crates/aco-llm",
     "crates/aco-embed",
@@ -115,6 +116,7 @@ tacitus-contracts = { path = "crates/tacitus-contracts" }
 aco-text = { path = "crates/aco-text" }
 aco-time = { path = "crates/aco-time" }
 aco-lex = { path = "crates/aco-lex" }
+aco-patterns = { path = "crates/aco-patterns" }
 aco-core = { path = "crates/aco-core" }
 aco-llm = { path = "crates/aco-llm", default-features = false }
 aco-embed = { path = "crates/aco-embed" }
