@@ -253,6 +253,9 @@ Full spec: **[docs/BUILD_PLAN_PERCEPTION.md](docs/BUILD_PLAN_PERCEPTION.md)** (1
 
 | If you want to… | Read |
 |---|---|
+| **Full doc map** | [`docs/INDEX.md`](docs/INDEX.md) |
+| See where AGON is going (standalone + trinity) | [`ROADMAP.md`](ROADMAP.md) |
+| Trinity integration (AGON ↔ DIALECTICA ↔ KAIROS) | [`docs/INTEROP.md`](docs/INTEROP.md) |
 | Run it for a few days then stop | [`docs/AGON_GUIDE.md`](docs/AGON_GUIDE.md) §2 + §9 |
 | Understand the architecture | [`docs/AGON_GUIDE.md`](docs/AGON_GUIDE.md) §1 + [`docs/BUILD_PLAN_PERCEPTION.md`](docs/BUILD_PLAN_PERCEPTION.md) |
 | Know what AGON depends on externally | [`docs/EXTERNALS.md`](docs/EXTERNALS.md) |
