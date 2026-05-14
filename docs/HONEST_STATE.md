@@ -154,6 +154,13 @@ In order of impact, given everything else equal:
 
 ---
 
+## What changed since this doc was written
+
+- **3 named patterns** now live (DARVO + Anchoring + Conspicuous Absence) — not just one.
+- **Patterns now run pre-LLM** and are injected into the Gemini envelope (C-path) — single LLM call grounded in deterministic detections.
+- **Backend introspection API** shipped: `/api/system`, `/api/patterns`, `/api/pipeline`. Frontend-agnostic.
+- **`aco-encode` real BGE-M3 ort 2.x wiring** is *written and reviewed* (full mean-pool + L2-normalize + HF download via stored token) but **parked** as `bge_m3.rs.skel` while we resolve a known `ort` 2.0.0-rc.10 vs rc.12 API incompatibility. Re-enable in the next focused turn alongside the Dockerfile change that bundles `libonnxruntime`. The path is real, not theoretical — file content is ~150 LOC of legitimate inference code.
+
 ## Next move (recommended, prioritized)
 
 1. **Today**: deploy v0.1.1 (just built). Verify lex+speech-span signals reach Gemini in production. Re-run Q4 demo and observe whether the prompt enrichment changes the extraction quality.

@@ -1,0 +1,161 @@
+//! BGE-M3 dense embedder via ort 2.x.
+//!
+//! Loads `BAAI/bge-m3` from HuggingFace using the `download` module.
+//! Wraps the ONNX session in an `EmbedEncoder`. Dense head only in v0.1;
+//! sparse and ColBERT outputs land in v0.2.
+//!
+//! Build with `--features onnx` to enable. Default build skips this module
+//! entirely so the workspace doesn't need ONNX Runtime native libs.
+
+use crate::download::ensure_hf_file;
+use crate::traits::{EmbedEncoder, EmbedResult, EncodeError, Encoder};
+use async_trait::async_trait;
+use ort::session::{Session, builder::GraphOptimizationLevel};
+use ort::value::Value;
+use std::sync::Arc;
+use tokenizers::Tokenizer;
+use tokio::sync::OnceCell;
+
+const REPO: &str = "BAAI/bge-m3";
+const MODEL_FILE: &str = "onnx/model.onnx";
+const TOKENIZER_FILE: &str = "tokenizer.json";
+
+/// Maximum sequence length BGE-M3 accepts (model card: 8192; we cap at 512 for
+/// the default embedder until streaming/chunking lands).
+const MAX_SEQ_LEN: usize = 512;
+
+/// Cell holding the loaded session + tokenizer. One-time init across the process.
+pub struct BgeM3Encoder {
+    inner: Arc<OnceCell<LoadedModel>>,
+}
+
+struct LoadedModel {
+    session: Session,
+    tokenizer: Tokenizer,
+}
+
+impl Default for BgeM3Encoder {
+    fn default() -> Self {
+        Self { inner: Arc::new(OnceCell::new()) }
+    }
+}
+
+impl BgeM3Encoder {
+    pub fn new() -> Self { Self::default() }
+
+    async fn loaded(&self) -> Result<&LoadedModel, EncodeError> {
+        self.inner
+            .get_or_try_init(|| async {
+                let onnx_path = ensure_hf_file(REPO, MODEL_FILE, None).await?;
+                let tok_path  = ensure_hf_file(REPO, TOKENIZER_FILE, None).await?;
+                let session = Session::builder()
+                    .map_err(|e| EncodeError::Inference(e.to_string()))?
+                    .with_optimization_level(GraphOptimizationLevel::Level3)
+                    .map_err(|e| EncodeError::Inference(e.to_string()))?
+                    .with_intra_threads(num_cpus().max(1))
+                    .map_err(|e| EncodeError::Inference(e.to_string()))?
+                    .commit_from_file(&onnx_path)
+                    .map_err(|e| EncodeError::Inference(e.to_string()))?;
+                let tokenizer = Tokenizer::from_file(&tok_path)
+                    .map_err(|e| EncodeError::Tokenize(e.to_string()))?;
+                Ok::<LoadedModel, EncodeError>(LoadedModel { session, tokenizer })
+            })
+            .await
+    }
+
+    fn run_inference(model: &LoadedModel, text: &str) -> Result<Vec<f32>, EncodeError> {
+        // 1) Tokenize.
+        let enc = model
+            .tokenizer
+            .encode(text, true)
+            .map_err(|e| EncodeError::Tokenize(e.to_string()))?;
+        let ids: Vec<i64> = enc.get_ids().iter().take(MAX_SEQ_LEN).map(|x| *x as i64).collect();
+        let mask: Vec<i64> = enc.get_attention_mask().iter().take(MAX_SEQ_LEN).map(|x| *x as i64).collect();
+        let seq_len = ids.len();
+
+        // 2) Build input tensors. BGE-M3 ONNX accepts input_ids + attention_mask.
+        let ids_arr  = ndarray::Array2::from_shape_vec((1, seq_len), ids)
+            .map_err(|e| EncodeError::Inference(format!("shape: {e}")))?;
+        let mask_arr = ndarray::Array2::from_shape_vec((1, seq_len), mask)
+            .map_err(|e| EncodeError::Inference(format!("shape: {e}")))?;
+        let ids_t  = Value::from_array(ids_arr).map_err(|e| EncodeError::Inference(e.to_string()))?;
+        let mask_t = Value::from_array(mask_arr).map_err(|e| EncodeError::Inference(e.to_string()))?;
+
+        // 3) Run.
+        let outputs = model
+            .session
+            .run(ort::inputs![
+                "input_ids" => ids_t,
+                "attention_mask" => mask_t,
+            ])
+            .map_err(|e| EncodeError::Inference(e.to_string()))?;
+
+        // 4) Read dense output: last_hidden_state -> mean-pool over masked tokens -> L2-normalize.
+        // BGE-M3 ONNX export uses output name "last_hidden_state" or "0".
+        let key = if outputs.contains_key("last_hidden_state") { "last_hidden_state" } else { "0" };
+        let (shape, data) = outputs[key]
+            .try_extract_raw_tensor::<f32>()
+            .map_err(|e| EncodeError::Inference(e.to_string()))?;
+
+        // shape: [batch=1, seq_len, hidden]. Mean-pool over seq with attention mask.
+        if shape.len() != 3 || shape[0] != 1 {
+            return Err(EncodeError::Inference(format!("unexpected output shape {shape:?}")));
+        }
+        let seq = shape[1] as usize;
+        let hidden = shape[2] as usize;
+        let mut pooled = vec![0f32; hidden];
+        let mut weight_sum = 0f32;
+        let mask_vec: Vec<f32> = enc.get_attention_mask().iter().take(seq).map(|x| *x as f32).collect();
+        for t in 0..seq {
+            let w = mask_vec.get(t).copied().unwrap_or(0.0);
+            if w == 0.0 { continue }
+            weight_sum += w;
+            for h in 0..hidden {
+                pooled[h] += data[t * hidden + h] * w;
+            }
+        }
+        if weight_sum > 0.0 {
+            for v in pooled.iter_mut() { *v /= weight_sum; }
+        }
+        // L2-normalize.
+        let norm: f32 = pooled.iter().map(|v| v * v).sum::<f32>().sqrt();
+        if norm > 0.0 {
+            for v in pooled.iter_mut() { *v /= norm; }
+        }
+        Ok(pooled)
+    }
+}
+
+fn num_cpus() -> usize {
+    std::thread::available_parallelism().map(|n| n.get()).unwrap_or(2)
+}
+
+#[async_trait]
+impl Encoder for BgeM3Encoder {
+    fn model_id(&self) -> &str { "BAAI/bge-m3" }
+    fn model_version(&self) -> &str { "0.1.0" }
+    fn is_loaded(&self) -> bool { self.inner.initialized() }
+}
+
+#[async_trait]
+impl EmbedEncoder for BgeM3Encoder {
+    async fn embed(&self, text: &str) -> Result<EmbedResult, EncodeError> {
+        let model = self.loaded().await?;
+        let vec = tokio::task::block_in_place(|| Self::run_inference(model, text))?;
+        Ok(EmbedResult {
+            dim: vec.len(),
+            vector: vec,
+            sparse: Default::default(),
+            model_id: self.model_id().to_string(),
+        })
+    }
+
+    async fn embed_batch(&self, texts: &[String]) -> Result<Vec<EmbedResult>, EncodeError> {
+        // v0.1: sequential — batched inference lands in v0.2.
+        let mut out = Vec::with_capacity(texts.len());
+        for t in texts {
+            out.push(self.embed(t).await?);
+        }
+        Ok(out)
+    }
+}

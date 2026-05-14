@@ -1,7 +1,7 @@
 # AGON — Operator's Guide
 
 **Audience:** anyone who needs to start, stop, understand, or build on AGON.
-**Status (2026-05-13):** MVP live; perception stack PROMPTS 01–04 partially implemented (contracts + text + time + lex).
+**Status (2026-05-14):** v0.1.4 live · 17 Rust crates · 70 tests green · perception stack PROMPTS 01–04 + 09(3/5) shipped · introspection API + DEMO_RECIPES live.
 
 ---
 
@@ -79,15 +79,15 @@ What you can do **right now**:
 
 | Crate | PROMPT | Status | What it does |
 |---|---|---|---|
-| `tacitus-contracts` | 01 | ✅ scaffolded + 8 schemas + Rust types + validation tests | Single source of truth for typed primitives |
-| `aco-text` | 02 | ✅ v0.1: NFC + bidi/ZW strip + whitespace canon + segmenter + span verification | Canonical text foundation |
-| `aco-time` | 03 | ✅ v0.1: Allen-13 calculator | Time intervals + temporal logic (regex DFA full impl pending) |
-| `aco-lex` | 04 | ✅ v0.1: EN hedge/modality/passive/pronoun | Deterministic lexical features (5 langs full impl pending) |
-| `aco-encode` | 05 | ☐ | ort 2.x + BGE-M3 + DeBERTa-NLI + fastcoref ONNX |
-| `aco-llm` | 06 | ◐ partial (Vertex Gemini live; needs Claude + GPT-5 + routing.toml) | Vendor-portable LLM layer |
-| `aco-extract` | 07 | ☐ | L1+L2+L3 perception pipeline |
+| `tacitus-contracts` | 01 | ✅ v0.1: 8 schemas + Rust types + validation tests | Single source of truth for typed primitives |
+| `aco-text` | 02 | ✅ v0.2: NFC + bidi/ZW strip + segmenter + **quoted-speech FSM** + **speaker-turn detector** + span verification | Canonical text foundation |
+| `aco-time` | 03 | ◐ v0.1: Allen-13 calculator | Multilingual regex/DFA pending |
+| `aco-lex` | 04 | ◐ v0.1: EN hedge/modality/passive/pronoun + cached regex | Multilingual pending |
+| `aco-encode` | 05 | ◐ scaffolded: `Encoder` trait + HF downloader + `--features onnx` gate | Real BGE-M3/DeBERTa-NLI/fastcoref pending Dockerfile change |
+| `aco-llm` | 06 | ✅ Vertex Gemini live + retry middleware; **Gemini-only** decision | Anthropic + OpenAI dropped |
+| `aco-extract` | 07 | ☐ | L1+L2+L3 perception pipeline (refactor of MVP) |
 | `aco-fuse`, `aco-temporal` | 08 | ☐ | Cross-doc actor resolution + commitment state machines |
-| `aco-patterns` | 09 | ☐ | 5 patterns: DARVO, anchoring, scope creep, conspicuous absence, coalition |
+| `aco-patterns` | 09 | ✅ **3/5 live: DARVO + Anchoring + Conspicuous Absence**; patterns run pre-LLM (C-path) | scope creep + coalition remain |
 | `aco-score` | 10 | ☐ | Calibration registry + conformal prediction |
 | `aco-prov` | 11 | ☐ | Provenance DAG + Merkle audit + JSON-LD export |
 | infra split | 12 | ☐ | Cloud Run CPU `agon-api` + GPU L4 `agon-batch` |

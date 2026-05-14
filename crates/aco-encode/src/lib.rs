@@ -15,17 +15,20 @@
 pub mod download;
 pub mod traits;
 
-#[cfg(feature = "onnx")]
+// bge_m3 + deberta_nli are parked as `.rs.skel` files while the ort 2.x
+// API is in flux (rc.10 vs rc.12 incompatibility). Next focused turn pins
+// the version + ONNX Runtime native lib in the Dockerfile and re-enables
+// these modules. See docs/HONEST_STATE.md.
+#[cfg(all(feature = "onnx", any()))]
 pub mod bge_m3;
-#[cfg(feature = "onnx")]
+#[cfg(all(feature = "onnx", any()))]
 pub mod deberta_nli;
 
 pub use traits::{EmbedResult, Encoder, EncodeError, NliLabel, NliResult};
 
-#[cfg(feature = "onnx")]
-pub use bge_m3::BgeM3Encoder;
-#[cfg(feature = "onnx")]
-pub use deberta_nli::DebertaNliEncoder;
+// Parked until ort wiring is finalized — see comment above.
+// pub use bge_m3::BgeM3Encoder;
+// pub use deberta_nli::DebertaNliEncoder;
 
 /// Build info — what's loaded at runtime.
 #[must_use]

@@ -7,6 +7,13 @@ Navigation map for AGON documentation. Keep small.
 | Doc | Purpose |
 |---|---|
 | [`../README.md`](../README.md) | What AGON is, quick start, API |
+| [`DEMO_RECIPES.md`](DEMO_RECIPES.md) | **Copy-paste curl recipes for every endpoint** — fastest way to verify it works |
+| [`AGON_GUIDE.md`](AGON_GUIDE.md) | Operator's guide — start/stop, cost shape, day-by-day flow |
+| [`BUILD_PLAN_PERCEPTION.md`](BUILD_PLAN_PERCEPTION.md) | The 15-prompt build plan (~90 days) |
+| [`HONEST_STATE.md`](HONEST_STATE.md) | Brutally honest accounting of what is real vs scaffold |
+| [`EXTERNALS.md`](EXTERNALS.md) | What you provide externally (Gemini-only, HF token) |
+| [`DEPLOYMENT_GCP.md`](DEPLOYMENT_GCP.md) | Target Cloud Run + Vertex + Cloud SQL + GCS topology |
+| [`AUDIT_2026-05-13.md`](AUDIT_2026-05-13.md) | 15-finding code audit, severity-scored |
 | [`../ROADMAP.md`](../ROADMAP.md) | Where AGON is going (standalone + trinity phases) |
 | [`../ARCHITECTURE.md`](../ARCHITECTURE.md) | 42KB deep dive on internal architecture |
 | [`../BUILDPLAN.md`](../BUILDPLAN.md) | Implementation plan |

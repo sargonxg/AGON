@@ -12,7 +12,7 @@ description = "Local neural encoders for AGON: BGE-M3 embeddings, DeBERTa-NLI, f
 # `onnx` enables real ort 2.x inference. Disabled by default so the workspace
 # can build on hosts without ONNX Runtime native libs. Enable in `agon-batch`.
 default = []
-onnx = ["dep:ort", "dep:tokenizers"]
+onnx = ["dep:ort", "dep:tokenizers", "dep:ndarray", "dep:num_cpus"]
 
 [dependencies]
 serde = { workspace = true }
@@ -23,5 +23,7 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 reqwest = { workspace = true }
 sha2 = "0.10"
-ort = { version = "2.0.0-rc.10", optional = true, default-features = false, features = ["load-dynamic"] }
+ort = { version = "=2.0.0-rc.10", optional = true, default-features = false, features = ["load-dynamic", "ndarray"] }
 tokenizers = { version = "0.20", optional = true, default-features = false, features = ["onig"] }
+ndarray = { version = "0.16", optional = true }
+num_cpus = { version = "1", optional = true }
