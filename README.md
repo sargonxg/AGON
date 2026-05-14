@@ -18,7 +18,7 @@
 
 > A perception engine for human conflict. AGON reads messy human text — emails, transcripts, depositions, board minutes, chat logs — and returns a typed, evidence-backed picture of the conflict inside it: **who said what, what was promised, what changed, where the contradictions are, what patterns are present**. Same shape as a self-driving stack — sensors, encoders, extraction, tracking, scene, calibration, provenance — applied to language.
 
-**Status:** v0.1.1 live · 16-crate Rust workspace · Cloud Run + Vertex AI · 56 tests green · MIT/Apache-2.0
+**Status:** v0.1.4 live · 17-crate Rust workspace · Cloud Run + Vertex AI · 70 tests green · 3 named patterns (DARVO + Anchoring + Conspicuous Absence) · MIT/Apache-2.0
 
 Built by [TACITUS](https://www.tacitus.me).
 
@@ -185,27 +185,29 @@ When a predicted edge is close to but not identical to the gold edge, partial cr
 AGON/
 ├── README.md                      ← you are here
 ├── docs/
+│   ├── INDEX.md                   ← doc map (start here)
 │   ├── AGON_GUIDE.md              ← operator's guide (start/stop, costs, day-by-day)
 │   ├── BUILD_PLAN_PERCEPTION.md   ← 15-prompt build plan (~90 days)
 │   ├── DEPLOYMENT_GCP.md          ← target Cloud Run + Vertex topology
-│   ├── EXTERNALS.md               ← what you provide (Gemini-only, no Anthropic/OpenAI)
+│   ├── EXTERNALS.md               ← what you provide (Gemini-only)
 │   ├── HONEST_STATE.md            ← brutally honest accounting of what is real
-│   └── AUDIT_2026-05-13.md        ← 15-finding code audit
+│   ├── AUDIT_2026-05-13.md        ← 15-finding code audit
+│   └── INTEROP.md                 ← trinity integration (AGON ↔ DIALECTICA ↔ KAIROS)
 ├── PROJECT_LEDGER/
 │   ├── AGON_LEDGER.md             ← MVP v0.1.0 sprint (shipped)
 │   ├── PERCEPTION_LEDGER.md       ← 15-prompt perception sprint tracker
 │   └── STATE.json                 ← current state, next prompt, open externals
 ├── crates/
 │   ├── tacitus-contracts/         ← typed primitives + JSON Schemas (PROMPT 01) ✓
-│   ├── aco-text/                  ← canonical text + segmenter + quoted-speech FSM (PROMPT 02) ✓
+│   ├── aco-text/                  ← canonical text + segmenter + quoted-speech FSM + speaker turns (PROMPT 02) ✓
 │   ├── aco-time/                  ← Allen-13 temporal algebra (PROMPT 03) ◐
 │   ├── aco-lex/                   ← hedge/modality/passive/pronoun extractors (PROMPT 04) ◐
-│   ├── aco-encode/                ← BGE-M3 + DeBERTa-NLI + fastcoref (PROMPT 05) ☐
-│   ├── aco-llm/                   ← Vertex Gemini backend (live)
+│   ├── aco-encode/                ← BGE-M3 + DeBERTa-NLI + fastcoref (PROMPT 05) ◐ scaffolded
+│   ├── aco-llm/                   ← Vertex Gemini backend + retry middleware (live)
 │   ├── aco-extract/               ← L1+L2+L3 perception pipeline (PROMPT 07) ☐
 │   ├── aco-fuse/                  ← cross-doc actor resolution (PROMPT 08) ☐
 │   ├── aco-temporal/              ← commitment state machine (PROMPT 08) ☐
-│   ├── aco-patterns/              ← DARVO + anchoring + scope creep + coalition + conspicuous absence (PROMPT 09) ☐
+│   ├── aco-patterns/              ← DARVO ✓ · Anchoring ✓ · Conspicuous Absence ✓ · scope creep ☐ · coalition ☐ (PROMPT 09) ◐
 │   ├── aco-score/                 ← calibration + conformal prediction (PROMPT 10) ☐
 │   ├── aco-prov/                  ← lineage DAG + Merkle audit (PROMPT 11) ☐
 │   ├── aco-storage/               ← Cloud SQL via sqlx (live)
@@ -254,6 +256,7 @@ Full spec: **[docs/BUILD_PLAN_PERCEPTION.md](docs/BUILD_PLAN_PERCEPTION.md)** (1
 | If you want to… | Read |
 |---|---|
 | **Full doc map** | [`docs/INDEX.md`](docs/INDEX.md) |
+| **Copy-paste demo recipes** (curl every endpoint) | [`docs/DEMO_RECIPES.md`](docs/DEMO_RECIPES.md) |
 | See where AGON is going (standalone + trinity) | [`ROADMAP.md`](ROADMAP.md) |
 | Trinity integration (AGON ↔ DIALECTICA ↔ KAIROS) | [`docs/INTEROP.md`](docs/INTEROP.md) |
 | Run it for a few days then stop | [`docs/AGON_GUIDE.md`](docs/AGON_GUIDE.md) §2 + §9 |
@@ -298,13 +301,75 @@ Status:   https://agon-dev-tbryoen6qa-uc.a.run.app/api/info
 
 Paste a multi-turn conflict (Slack thread, email reply chain, deposition snippet, board minutes). Click *Perceive*. Watch the friction matrix, the actor/claim graph, and the structured ACO primitives appear with verifiable evidence quotes.
 
-API:
+### Try every endpoint in your terminal — 30 seconds
 
 ```bash
-curl -u AGON:AGON -X POST https://agon-dev-tbryoen6qa-uc.a.run.app/api/perceive \
+BASE=https://agon-dev-tbryoen6qa-uc.a.run.app
+AUTH="AGON:AGON"
+
+# 1. Liveness — anyone can hit, no auth.
+curl -s $BASE/healthz
+
+# 2. Service info — version, deployment, db status.
+curl -s -u $AUTH $BASE/api/info | jq
+
+# 3. Full backend introspection — layers, ML strategy, registered patterns, doc index.
+curl -s -u $AUTH $BASE/api/system | jq
+
+# 4. Pattern detector catalog — names, kinds, descriptions, live vs planned.
+curl -s -u $AUTH $BASE/api/patterns | jq '.patterns[] | {id, version, live, public_name}'
+
+# 5. Pipeline map — 12 stages with crate + kind + p50 latency.
+curl -s -u $AUTH $BASE/api/pipeline | jq '.stages[] | {order, id, crate, kind, p50_ms}'
+
+# 6. Past perceptions.
+curl -s -u $AUTH $BASE/api/sessions | jq '.sessions[0:3]'
+
+# 7. Run a real perception.
+curl -s -u $AUTH -X POST $BASE/api/perceive \
   -H "Content-Type: application/json" \
-  -d '{"text": "Sam: We agreed Thursday. Alex: I never agreed.", "title": "demo"}'
+  -d '{
+    "text": "Sam (Mon): We agreed you own the Q4 deck by Thursday.\nAlex (Mon): Sounds good.\nAlex (Thu): I never said I would own it.\nSam (Thu): That is not what we discussed.\nAlex (Thu): You are putting words in my mouth.",
+    "title": "Q4 deck dispute"
+  }' | jq '{
+    elapsed_ms,
+    patterns: .patterns_detected[] | {pattern_id, public_name, raw_confidence, evidence_excerpts},
+    friction: .friction_matrix.pairs[0],
+    quality: .quality_gates
+  }'
 ```
+
+### What you should see
+
+`/api/perceive` on the Q4 deck dispute returns (real, live):
+
+```json
+{
+  "patterns_detected": [
+    {
+      "pattern_id": "darvo",
+      "pattern_version": "0.1.0",
+      "public_name": "possible role-reversal pattern",
+      "raw_confidence": 0.70,
+      "actors_involved": ["actor_alex"],
+      "evidence_excerpts": ["I never", "You're putting words in my mouth"],
+      "explanation": "Actor `actor_alex` denied at turn 2 (\"I never\") then attacked/reframed the accuser at turn 4 (\"You're putting words in my mouth\"). Classical role-reversal sequence."
+    }
+  ],
+  "friction_matrix": {
+    "pairs": [{"a_label":"Alex","b_label":"Sam","heat":100,"reasons":["denial pressure","pattern: defensiveness","escalation signal", "..."]}]
+  },
+  "quality_gates": [
+    {"label":"Verified evidence coverage","status":"pass","detail":"33/33 primitive evidence quotes verified"},
+    {"label":"Actor ambiguity","status":"pass"},
+    {"label":"Conflict signal strength","status":"pass"}
+  ]
+}
+```
+
+### Web workbench
+
+Open the URL in a browser. Login `AGON / AGON`. Paste a multi-turn dispute. Click *Perceive*. You'll see the same data rendered as a force-directed graph + friction matrix + named patterns + raw JSON inspector.
 
 ---
 

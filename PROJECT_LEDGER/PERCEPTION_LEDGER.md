@@ -45,7 +45,7 @@ Parallelizable: {03, 04} alongside 05 · {12} alongside {13}
 | 06 | sprint/06-aco-llm | aco-llm | ◐ | — | Extends existing; add Claude + GPT-5 + routing.toml; **VertexGemini live** |
 | 07 | sprint/07-aco-extract | aco-extract (new) | ☐ | — | L1+L2+L3 pipeline; Fast/Standard/Deep modes |
 | 08 | sprint/08-aco-fuse-temporal | aco-fuse, aco-temporal | ☐ | — | Cross-doc actor IDs + commitment state machine + Allen-13 |
-| 09 | sprint/09-aco-patterns | aco-patterns | ◐ v0.1 (2026-05-14) | — | aco-patterns crate scaffolded; **DARVO detector live** (5 tests, deterministic regex precondition + confidence-decay-with-gap); wired into /api/perceive `patterns_detected[]` field; 4 patterns remain (anchoring, scope creep, conspicuous absence, coalition) |
+| 09 | sprint/09-aco-patterns | aco-patterns | ◐ v0.2 (2026-05-14) | — | **DARVO + Anchoring + Conspicuous Absence live (3/5)**; 12 unit tests; patterns NOW run pre-LLM and are injected into the Gemini envelope (C-path) — single LLM call, richer extraction; scope creep + coalition remain |
 | 10 | sprint/10-aco-score | aco-score | ☐ | — | Temp/iso/beta calibration + stacked LR + conformal prediction |
 | 11 | sprint/11-aco-prov | aco-prov | ☐ | — | Lineage DAG + Merkle + Ed25519 + JSON-LD/MD export |
 | 12 | sprint/12-cloud-run-gpu | infra/, aco-batch-rpc | ☐ | — | Split agon-api (CPU) + agon-batch (L4 GPU) |
@@ -93,3 +93,5 @@ Every prompt ships only when:
 | 2026-05-13 | audit + Gemini-only | — | Audit done (`docs/AUDIT_2026-05-13.md`, 15 findings, 0 critical-in-code, 1 self-introduced bug fixed); Anthropic + OpenAI dropped; `crates/aco-llm/config/routing.toml` written; `forbid(unsafe_code)` added to all new crates; aco-lex regex cache fixed |
 | 2026-05-13 | deploy v0.1.1 | — | Cloud Build → revision `agon-dev-00013-rbj`; verified Q4 demo (33/33 evidence, named pattern signals in friction reasons); verified board-minutes test fires coalition + agency-hiding + strong-hedge flags |
 | 2026-05-14 | 09 partial — DARVO | — | aco-patterns crate + DARVO detector + wired into /api/perceive; 5 unit tests + 1 integration via server tests; total workspace 61 tests; README rewritten as cover page; merged remote ROADMAP + INTEROP + docs/INDEX |
+| 2026-05-14 | 09 #2 + introspection + aco-encode scaffold | — | Anchoring detector live (4 tests, $/€/£/% support); 3 backend introspection endpoints (`/api/system`, `/api/patterns`, `/api/pipeline`); aco-encode crate scaffolded (`Encoder` trait + HF downloader + `--features onnx` gate); workspace 67 tests; deployed v0.1.3 |
+| 2026-05-14 | 09 #3 + C-path priming | — | Conspicuous Absence detector live (3 tests, expectations.toml + doc-type inference); patterns now run **pre-LLM** and inject into Gemini envelope; workspace 70 tests; deployed v0.1.4 (revision agon-dev-00016-ls8) |

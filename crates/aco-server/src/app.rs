@@ -847,11 +847,19 @@ async fn perceive(
 
     let source_text = body.text.clone();
     let pc = pretransform::transform(&source_text);
+
+    // C: pattern detection now runs PRE-LLM. Detected patterns are injected into
+    // the envelope so Gemini sees them and grounds its extraction in them.
+    // Single LLM call — no extra cost.
+    let patterns_detected = run_patterns(&source_text, &pc);
+    let patterns_envelope = render_patterns_envelope(&patterns_detected);
+
     let envelope = pretransform::render_envelope(&pc);
-    let user_payload = if envelope.is_empty() {
-        source_text.clone()
-    } else {
-        format!("{envelope}\n{source_text}")
+    let user_payload = match (envelope.is_empty(), patterns_envelope.is_empty()) {
+        (true, true) => source_text.clone(),
+        (true, false) => format!("{patterns_envelope}\n{source_text}"),
+        (false, true) => format!("{envelope}\n{source_text}"),
+        (false, false) => format!("{envelope}\n{patterns_envelope}\n{source_text}"),
     };
 
     let req = ExtractRequest {
@@ -903,9 +911,6 @@ async fn perceive(
         }
     }
 
-    // Pattern detection — runs deterministically over canonical text + speaker turns.
-    let patterns_detected = run_patterns(&source_text, &pc);
-
     Ok(Json(PerceiveResponse {
         session_id,
         elapsed_ms: elapsed.as_millis(),
@@ -948,6 +953,47 @@ fn run_patterns(source_text: &str, pc: &PreCanonical) -> Vec<serde_json::Value> 
         .into_iter()
         .filter_map(|m| serde_json::to_value(m).ok())
         .collect()
+}
+
+/// Render detected patterns into the deterministic envelope so the LLM sees
+/// them before extraction. This is the **C-path**: re-prime Gemini with what
+/// our Rust detectors already found, so it grounds its extraction in named
+/// patterns instead of having to rediscover them.
+fn render_patterns_envelope(patterns: &[serde_json::Value]) -> String {
+    if patterns.is_empty() {
+        return String::new();
+    }
+    let mut s = String::from("=== Patterns detected pre-LLM (deterministic, treat as ground truth) ===\n");
+    for p in patterns {
+        let id = p.get("pattern_id").and_then(|v| v.as_str()).unwrap_or("?");
+        let ver = p.get("pattern_version").and_then(|v| v.as_str()).unwrap_or("?");
+        let public = p.get("public_name").and_then(|v| v.as_str()).unwrap_or("");
+        let conf = p.get("raw_confidence").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let why = p.get("explanation").and_then(|v| v.as_str()).unwrap_or("");
+        let actors = p
+            .get("actors_involved")
+            .and_then(|v| v.as_array())
+            .map(|a| {
+                a.iter().filter_map(|x| x.as_str()).collect::<Vec<_>>().join(", ")
+            })
+            .unwrap_or_default();
+        let evidence = p
+            .get("evidence_excerpts")
+            .and_then(|v| v.as_array())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|x| x.as_str())
+                    .map(|x| format!("\"{x}\""))
+                    .collect::<Vec<_>>()
+                    .join(" | ")
+            })
+            .unwrap_or_default();
+        s.push_str(&format!(
+            "  - {id} v{ver} (conf {conf:.2})  -> {public}\n    actors: {actors}\n    evidence: {evidence}\n    why: {why}\n"
+        ));
+    }
+    s.push_str("=== End pre-detected patterns ===\n");
+    s
 }
 
 /// Server-Sent Events stream of pipeline stages with live per-stage timing.
