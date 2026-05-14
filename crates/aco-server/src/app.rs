@@ -277,8 +277,9 @@ async fn system_introspection(State(s): State<Arc<AppState>>) -> Json<serde_json
         ],
 
         "patterns_registered": [
-            { "id": "darvo",     "version": "0.1.0", "public_name": "possible role-reversal pattern", "live": true },
-            { "id": "anchoring", "version": "0.1.0", "public_name": "first-number-effect",            "live": true }
+            { "id": "darvo",                "version": "0.1.0", "public_name": "possible role-reversal pattern", "live": true },
+            { "id": "anchoring",            "version": "0.1.0", "public_name": "first-number-effect",            "live": true },
+            { "id": "conspicuous_absence",  "version": "0.1.0", "public_name": "expected-but-missing pattern",   "live": true }
         ],
 
         "docs": {
@@ -330,11 +331,14 @@ async fn list_patterns() -> Json<serde_json::Value> {
             },
             {
                 "id": "conspicuous_absence",
-                "version": "0.0.0",
+                "version": "0.1.0",
                 "public_name": "expected-but-missing pattern",
                 "taxonomy": "institutional",
-                "live": false,
-                "note": "AGON's distinguishing capability per build plan §9",
+                "live": true,
+                "kind": "deterministic_rules",
+                "description": "Flags expected-but-missing primitives for the inferred document type (minutes/deposition/email_thread/negotiation/dispute). AGON's distinguishing capability per build plan §9.",
+                "inputs": ["speaker_turns", "speech_spans", "canonical_text"],
+                "confidence_by": "structural vs soft strength of expectation",
             },
             {
                 "id": "coalition",

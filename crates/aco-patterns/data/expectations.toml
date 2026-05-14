@@ -1,0 +1,44 @@
+# Conspicuous-absence expectations.
+#
+# For each detected document type, list the primitives we EXPECT to find. If a
+# document is identified as one of these types and the expected primitive count
+# is zero (or far below threshold), emit a conspicuous-absence pattern match.
+#
+# `strength` controls how strong an absence signal is:
+#   - "structural": a serious gap (e.g., minutes with zero decisions)
+#   - "soft":       worth flagging but not anomalous on its own
+#
+# Add new document types here; do not hand-code in Rust.
+
+[document_type.minutes]
+description = "Board/committee minutes — should contain decisions and commitments"
+expected = [
+  { kind = "commitment", strength = "structural", reason = "Minutes ordinarily record commitments made during the meeting" },
+  { kind = "event",      strength = "soft",       reason = "Minutes ordinarily reference at least one scheduled or past event" },
+]
+
+[document_type.deposition]
+description = "Deposition transcript — should contain claims + denials + commitments"
+expected = [
+  { kind = "claim",      strength = "structural", reason = "A deposition is fundamentally a record of witness claims" },
+  { kind = "denial",     strength = "soft",       reason = "Most contested matters elicit at least one denial" },
+]
+
+[document_type.email_thread]
+description = "Email reply chain — should contain at least one commitment or denial"
+expected = [
+  { kind = "commitment", strength = "soft",       reason = "Email threads about ongoing work usually surface a commitment" },
+]
+
+[document_type.negotiation]
+description = "Negotiation transcript — should contain at least one offer + counter"
+expected = [
+  { kind = "claim_numeric", strength = "structural", reason = "A negotiation without numbers is not yet a negotiation" },
+]
+
+[document_type.dispute]
+description = "Multi-turn dispute — should contain at least one assertion + denial pair"
+expected = [
+  { kind = "denial",        strength = "structural", reason = "By definition, a dispute contains at least one denial of an assertion" },
+  { kind = "commitment",    strength = "soft",       reason = "Most disputes involve a contested commitment" },
+]
