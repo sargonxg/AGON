@@ -4,6 +4,16 @@
 [![Docker](https://github.com/sargonxg/AGON/actions/workflows/docker.yml/badge.svg?branch=main)](https://github.com/sargonxg/AGON/actions/workflows/docker.yml)
 [![Audit](https://github.com/sargonxg/AGON/actions/workflows/audit.yml/badge.svg?branch=main)](https://github.com/sargonxg/AGON/actions/workflows/audit.yml)
 
+AGON is a Rust conflict-intelligence engine from TACITUS. It turns messy human text into a typed, evidence-backed conflict scene: actors, claims, commitments, contradictions, friction patterns, source spans, review questions, and provenance.
+
+## 30-Second Read
+
+- **What it is**: a perception stack for conflict, built like infrastructure rather than a chat prompt.
+- **What it proves today**: a 17-crate Rust workspace, Cloud Run demo, Vertex AI extraction path, 70 green tests, evidence-span verification, contradiction detection, friction matrices, and named pattern detection.
+- **What it is not yet**: a finished legal/mediation product or a substitute for expert judgment.
+- **License status**: public source preview; final open-source license is pending, as reflected in [LICENSE](LICENSE).
+- **Best place to start**: run the live endpoint examples below, then read [ARCHITECTURE.md](ARCHITECTURE.md) and [ROADMAP.md](ROADMAP.md).
+
 ```text
    █████╗  ██████╗  ██████╗ ███╗   ██╗
   ██╔══██╗██╔════╝ ██╔═══██╗████╗  ██║
@@ -18,7 +28,7 @@
 
 > A perception engine for human conflict. AGON reads messy human text — emails, transcripts, depositions, board minutes, chat logs — and returns a typed, evidence-backed picture of the conflict inside it: **who said what, what was promised, what changed, where the contradictions are, what patterns are present**. Same shape as a self-driving stack — sensors, encoders, extraction, tracking, scene, calibration, provenance — applied to language.
 
-**Status:** v0.1.4 live · 17-crate Rust workspace · Cloud Run + Vertex AI · 70 tests green · 3 named patterns (DARVO + Anchoring + Conspicuous Absence) · MIT/Apache-2.0
+**Status:** v0.1.4 live · 17-crate Rust workspace · Cloud Run + Vertex AI · 70 tests green · 3 named patterns (DARVO + Anchoring + Conspicuous Absence) · public source preview, license pending
 
 Built by [TACITUS](https://www.tacitus.me).
 
