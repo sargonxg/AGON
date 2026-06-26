@@ -1,6 +1,5 @@
 # AGON
 
-[![CI](https://github.com/sargonxg/AGON/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/sargonxg/AGON/actions/workflows/ci.yml)
 [![Docker](https://github.com/sargonxg/AGON/actions/workflows/docker.yml/badge.svg?branch=main)](https://github.com/sargonxg/AGON/actions/workflows/docker.yml)
 [![Bench](https://github.com/sargonxg/AGON/actions/workflows/bench.yml/badge.svg?branch=main)](https://github.com/sargonxg/AGON/actions/workflows/bench.yml)
 [![Rust](https://img.shields.io/badge/Rust-2021-orange?logo=rust)](Cargo.toml)
