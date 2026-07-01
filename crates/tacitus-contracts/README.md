@@ -70,4 +70,4 @@ Schemas use semver via `schema_version`. Breaking changes: bump major, keep old 
 
 ## License & maintainer
 
-MIT OR Apache-2.0. Maintainer: Giulio Catanzariti `<giuliocatanzariti@gmail.com>`.
+MIT OR Apache-2.0. Maintainer: Giulio Catanzariti `<gi--lio-----@---.com>`.
