@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use AGON in research, evaluation, or derivative work, please cite this repository."
+title: "AGON: Source-Grounded Conflict Perception"
+type: software
+authors:
+  - given-names: Giulio
+    family-names: Catanzariti
+    affiliation: TACITUS
+    email: hello@tacitus.me
+repository-code: "https://github.com/sargonxg/AGON"
+url: "https://www.tacitus.me"
+abstract: >-
+  AGON is an experimental Rust research system for representing actors, claims,
+  interests, constraints, leverage, commitments, events, narratives,
+  contradictions, friction signals, source spans, and provenance in difficult
+  human and institutional text.
+keywords:
+  - conflict analysis
+  - policy analysis
+  - provenance
+  - knowledge graphs
+  - human review
+  - Rust
