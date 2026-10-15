@@ -1,420 +1,112 @@
 # AGON
 
-[![Docker](https://github.com/sargonxg/AGON/actions/workflows/docker.yml/badge.svg?branch=main)](https://github.com/sargonxg/AGON/actions/workflows/docker.yml)
-[![Bench](https://github.com/sargonxg/AGON/actions/workflows/bench.yml/badge.svg?branch=main)](https://github.com/sargonxg/AGON/actions/workflows/bench.yml)
+**A source-grounded conflict-perception engine from TACITUS.**
+
 [![Rust](https://img.shields.io/badge/Rust-2021-orange?logo=rust)](Cargo.toml)
-![License](https://img.shields.io/badge/license-pending-lightgrey)
+![Status](https://img.shields.io/badge/status-experimental-yellow)
+![License](https://img.shields.io/badge/license-not%20finalized-lightgrey)
 
-AGON is a Rust conflict-intelligence engine from TACITUS. It turns messy human text into a typed, evidence-backed conflict scene: actors, claims, commitments, contradictions, friction patterns, source spans, review questions, and provenance.
+AGON is a Rust research system for turning difficult human text—transcripts, correspondence, minutes, case notes, and policy records—into typed, reviewable conflict objects. It focuses on actors, claims, interests, constraints, leverage, commitments, events, narratives, contradictions, friction signals, source spans, and provenance.
 
-## 30-Second Read
+> **Experimental research software.** AGON is not a legal, clinical, human-resources, mediation, or autonomous decision product. Its outputs are analytical proposals for human review, not findings about people or disputes.
 
-- **What it is**: a perception stack for conflict, built like infrastructure rather than a chat prompt.
-- **What it proves today**: a 17-crate Rust workspace, Cloud Run demo, Vertex AI extraction path, 70 green tests, evidence-span verification, contradiction detection, friction matrices, and named pattern detection.
-- **What it is not yet**: a finished legal/mediation product or a substitute for expert judgment.
-- **License status**: public source preview; final open-source license is pending, as reflected in [LICENSE](LICENSE).
-- **Best place to start**: run the live endpoint examples below, then read [ARCHITECTURE.md](ARCHITECTURE.md) and [ROADMAP.md](ROADMAP.md).
+## 30-second read
 
-```text
-   █████╗  ██████╗  ██████╗ ███╗   ██╗
-  ██╔══██╗██╔════╝ ██╔═══██╗████╗  ██║
-  ███████║██║  ███╗██║   ██║██╔██╗ ██║
-  ██╔══██║██║   ██║██║   ██║██║╚██╗██║
-  ██║  ██║╚██████╔╝╚██████╔╝██║ ╚████║
-  ╚═╝  ╚═╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝
+- **Problem:** fluent summaries often blur attribution, evidence, chronology, commitments, contradiction, and uncertainty.
+- **Approach:** typed contracts and deterministic validation surround optional model-based extraction.
+- **Output:** a graph-shaped conflict scene in which claim-bearing objects point back to exact source spans.
+- **Current scope:** an experimental Rust workspace, API/workbench scaffold, fixtures, tests, and deployment tooling. Production validation remains incomplete.
 
-  conflict is legible.
-  perception is sovereign.
-```
+## What AGON is designed to preserve
 
-> A perception engine for human conflict. AGON reads messy human text — emails, transcripts, depositions, board minutes, chat logs — and returns a typed, evidence-backed picture of the conflict inside it: **who said what, what was promised, what changed, where the contradictions are, what patterns are present**. Same shape as a self-driving stack — sensors, encoders, extraction, tracking, scene, calibration, provenance — applied to language.
+| Object | Question it helps an analyst ask |
+| --- | --- |
+| Actor | Who is speaking, acting, affected, or represented? |
+| Claim | What was asserted, by whom, and on what evidence? |
+| Interest | What underlying objective may explain a stated position? |
+| Constraint | What legal, procedural, financial, temporal, or relational limit applies? |
+| Leverage | What resource or dependency changes bargaining power? |
+| Commitment | Who promised what, to whom, by when, and with what status? |
+| Event | What happened, when, and according to which source? |
+| Narrative | What broader frame connects multiple claims? |
+| Contradiction | Which statements or commitments cannot be jointly sustained? |
+| Provenance | Which exact source span supports each object and transformation? |
 
-**Status:** v0.1.4 live · 17-crate Rust workspace · Cloud Run + Vertex AI · 70 tests green · 3 named patterns (DARVO + Anchoring + Conspicuous Absence) · public source preview, license pending
+Inference and observation are not interchangeable. Interests, narratives, patterns, and causal explanations require explicit uncertainty and review.
 
-Built by [TACITUS](https://www.tacitus.me).
+## Architecture
 
----
-
-## Why AGON exists
-
-Generic LLMs are good at summarizing text. They are bad at:
-
-- **Naming the move**. They tell you "there's tension"; they don't tell you "this is a textbook DARVO".
-- **Anchoring claims to source**. They paraphrase. AGON requires every primitive to cite an exact verbatim span — and verifies it.
-- **Tracking commitments through time**. They forget what was promised three turns ago. AGON keeps a state machine: `made → confirmed → contested → broken`.
-- **Knowing when to abstain**. They are confidently wrong. AGON has calibrated confidence and conformal-prediction abstention (on the roadmap).
-- **Being auditable**. They are a black box. AGON's output is a typed DAG with content-hash provenance for every node.
-
-AGON is not a chatbot. It is **infrastructure for conflict vision** — built like a perception stack, not a prompt template.
-
----
-
-## The self-driving-car analogy (taken literally)
-
-```
-                            RAW TEXT
-                               │
-                               ▼
-┌───────────────────────────────────────────────────────────────┐
-│  L1  SENSORS          deterministic Rust                       │
-│      canonical text · segmentation · quoted-speech FSM ·       │
-│      speaker turns · time expressions · lexical features       │
-│      (aco-text · aco-time · aco-lex)                           │
-├───────────────────────────────────────────────────────────────┤
-│  L2  ENCODERS         ort 2.x (ONNX Runtime)                   │
-│      BGE-M3 embeddings · DeBERTa-v3-large NLI · fastcoref      │
-│      (aco-encode)                       — PROMPT 05            │
-├───────────────────────────────────────────────────────────────┤
-│  L3  EXTRACTION       Vertex Gemini 2.5 Flash + Pro            │
-│      schema-constrained ACO primitives:                        │
-│      Actor · Claim · Interest · Constraint · Leverage ·        │
-│      Commitment · Event · Narrative · Contradiction            │
-│      (aco-extract · aco-llm)                                   │
-├───────────────────────────────────────────────────────────────┤
-│  L4  TRACKING         deterministic Rust                       │
-│      cross-doc actor resolution · commitment state machine ·   │
-│      Allen-13 temporal logic · evidence-span verification      │
-│      (aco-fuse · aco-temporal)                                 │
-├───────────────────────────────────────────────────────────────┤
-│  L5  SCENE            hybrid                                   │
-│      friction matrix · pattern library                         │
-│      DARVO · anchoring · scope creep · conspicuous absence ·   │
-│      coalition · power dynamics                                │
-│      (aco-patterns)                     — PROMPT 09            │
-├───────────────────────────────────────────────────────────────┤
-│  L6  CALIBRATION      deterministic Rust                       │
-│      per-detector temperature/isotonic · stacked LR ·          │
-│      conformal prediction for abstention                       │
-│      (aco-score)                        — PROMPT 10            │
-├───────────────────────────────────────────────────────────────┤
-│  L7  PROVENANCE       deterministic Rust                       │
-│      typed lineage DAG · Merkle audit log · signed records ·   │
-│      JSON-LD + Markdown export                                 │
-│      (aco-prov)                         — PROMPT 11            │
-├───────────────────────────────────────────────────────────────┤
-│  L8  DECISION         Axum + SSE                               │
-│      quality gates · review questions · streaming workbench    │
-│      (aco-server)                                              │
-└───────────────────────────────────────────────────────────────┘
-```
-
-Each layer has a typed contract. Each layer is independently testable. **No single model is asked to do everything.** The chassis is Rust. ML models are interchangeable passengers behind typed traits.
-
----
-
-## What it does today (live demo)
-
-Paste a multi-turn dispute. Get back a structured perception.
-
-### Input
-
-```
-Sam (Mon 09:14): So we're agreed — you own the Q4 launch deck content,
-                  I handle design. Lock it in by Thursday?
-Alex (Mon 09:47): Sounds good. I'll pick it up after the Jenkins pitch.
-Alex (Thu 09:02): I never said I'd own it. Just help.
-Sam (Thu 09:15):  That's not what we discussed. We don't have time to
-                  relitigate this — the launch is Monday.
-Alex (Thu 09:18): You're putting words in my mouth. You said you'd own
-                  the content if I helped with design.
-```
-
-### Output (real, from the live service, 22 s)
-
-- **2 actors** — `actor_sam`, `actor_alex`
-- **1 contested commitment** — *"own the Q4 launch deck content"* · state=`contested` · confidence 0.76
-- **1 escalation loop** around `actor_alex` · confidence 0.71
-- **10 contradictions** with evidence spans
-- **5 speaker turns** detected pre-extraction
-- **33/33 evidence quotes verified** against canonical source
-- **friction matrix**: Sam ↔ Alex heat **100/100**, reasons include `commitment_contested`, `pattern: defensiveness`, `pattern: criticism`, `pattern: stonewalling`, `escalation_signal`
-- **review questions** surfaced: *"What exact words created or limited the alleged commitment?"*, *"Which contradiction is material to the decision?"*
-
-The friction matrix and force-directed actor/claim graph render in a dark-mode workbench at `https://agon-dev-tbryoen6qa-uc.a.run.app` (user `AGON` / pass `AGON`).
-
----
-
-## Turn it on, turn it off
-
-```bash
-bash scripts/agon-up.sh        # start  (~30 s, then ~$3–8/day active)
-bash scripts/agon-down.sh      # stop   (~10 s, then ~$0.20–0.50/day idle)
-bash scripts/agon-status.sh    # status
-bash scripts/agon-nuke.sh      # terraform destroy (DATA LOSS — use with care)
-```
-
-PowerShell wrappers: `scripts/*.ps1`. Full operator's guide: **[docs/AGON_GUIDE.md](docs/AGON_GUIDE.md)**.
-
-A typical **few-days-of-testing** cycle costs **under $30** total. Your GCP startup credit covers it many times over.
-
----
-
-## Architecture decisions that won't change
-
-These are locked. If something downstream conflicts, it loses.
-
-1. **Rust chassis, ML passengers.** No Python sidecar. Every model behind a Rust trait.
-2. **JSON Schema is the source of truth.** [`tacitus-contracts`](crates/tacitus-contracts/) is the only place primitives are defined. Rust types live alongside; Python and TypeScript regenerate from the same schemas.
-3. **Evidence-span quad form.** Every claim-bearing primitive carries `(segment_id, canonical_offsets, raw_offsets, verbatim_quote, quote_hash, normalization_version)`. Non-negotiable. This is what makes a primitive auditable instead of plausible.
-4. **Calibration is mandatory.** Every detector emits raw signal; the calibration registry converts to probability. LLM verbalized confidence is a feature, never a probability.
-5. **Per-doc perception, then cross-doc fusion.** Long-context Gemini is an adjudication tool, not the primary architecture.
-6. **Pattern names are clinical internally, neutral publicly.** DARVO → "possible role-reversal pattern" in the UI. Ethics + legal.
-7. **No training.** AGON is inference-only. Corrections corpus accumulates; training is deliberate future work, gated on the corrections corpus reaching critical mass.
-
----
-
-## The ACO ontology (Agentic Conflict Ontology) — locked for v0.1
-
-### 8 primitives
-
-| Primitive | Definition |
-|---|---|
-| **Actor** | Any party capable of holding an interest or making a claim |
-| **Claim** | An asserted fact, evaluation, or normative statement attributed to an actor |
-| **Interest** | An underlying goal or need (Fisher/Ury distinction from "position") |
-| **Constraint** | A rule, norm, or structural limit |
-| **Leverage** | A resource, dependency, or capability that shifts bargaining power |
-| **Commitment** | A promised future action, with subject and deadline |
-| **Event** | A dated or orderable occurrence |
-| **Narrative** | A coherent framing across multiple claims |
-
-### 18 typed edges (closed set)
-
-`ASSERTED · DENIED · ACKNOWLEDGED · ACKNOWLEDGED_AMBIGUOUSLY · DENIES_SCOPE · COMMITS_TO · REVOKES · BLOCKS · ENABLES · CAUSES · PRECEDES · CONTRADICTS · SUPPORTS · CITES · HOLDS_INTEREST · FRAMES · LEVERAGES · CONSTRAINED_BY`
-
-Every edge carries a `provenance` field. Missing provenance fails validation.
-
-### Partial-credit type similarity
-
-When a predicted edge is close to but not identical to the gold edge, partial credit is awarded — `ACKNOWLEDGED ↔ ACKNOWLEDGED_AMBIGUOUSLY = 0.75`, `BLOCKS ↔ CONSTRAINED_BY = 0.40`, etc. See [`crates/tacitus-contracts/`](crates/tacitus-contracts/) for the full matrix.
-
----
-
-## Repository map
-
-```
-AGON/
-├── README.md                      ← you are here
-├── docs/
-│   ├── INDEX.md                   ← doc map (start here)
-│   ├── AGON_GUIDE.md              ← operator's guide (start/stop, costs, day-by-day)
-│   ├── BUILD_PLAN_PERCEPTION.md   ← 15-prompt build plan (~90 days)
-│   ├── DEPLOYMENT_GCP.md          ← target Cloud Run + Vertex topology
-│   ├── EXTERNALS.md               ← what you provide (Gemini-only)
-│   ├── HONEST_STATE.md            ← brutally honest accounting of what is real
-│   ├── AUDIT_2026-05-13.md        ← 15-finding code audit
-│   └── INTEROP.md                 ← trinity integration (AGON ↔ DIALECTICA ↔ KAIROS)
-├── PROJECT_LEDGER/
-│   ├── AGON_LEDGER.md             ← MVP v0.1.0 sprint (shipped)
-│   ├── PERCEPTION_LEDGER.md       ← 15-prompt perception sprint tracker
-│   └── STATE.json                 ← current state, next prompt, open externals
-├── crates/
-│   ├── tacitus-contracts/         ← typed primitives + JSON Schemas (PROMPT 01) ✓
-│   ├── aco-text/                  ← canonical text + segmenter + quoted-speech FSM + speaker turns (PROMPT 02) ✓
-│   ├── aco-time/                  ← Allen-13 temporal algebra (PROMPT 03) ◐
-│   ├── aco-lex/                   ← hedge/modality/passive/pronoun extractors (PROMPT 04) ◐
-│   ├── aco-encode/                ← BGE-M3 + DeBERTa-NLI + fastcoref (PROMPT 05) ◐ scaffolded
-│   ├── aco-llm/                   ← Vertex Gemini backend + retry middleware (live)
-│   ├── aco-extract/               ← L1+L2+L3 perception pipeline (PROMPT 07) ☐
-│   ├── aco-fuse/                  ← cross-doc actor resolution (PROMPT 08) ☐
-│   ├── aco-temporal/              ← commitment state machine (PROMPT 08) ☐
-│   ├── aco-patterns/              ← DARVO ✓ · Anchoring ✓ · Conspicuous Absence ✓ · scope creep ☐ · coalition ☐ (PROMPT 09) ◐
-│   ├── aco-score/                 ← calibration + conformal prediction (PROMPT 10) ☐
-│   ├── aco-prov/                  ← lineage DAG + Merkle audit (PROMPT 11) ☐
-│   ├── aco-storage/               ← Cloud SQL via sqlx (live)
-│   ├── aco-server/                ← Axum + workbench UI (live)
-│   ├── aco-cli/                   ← agon-cli
-│   ├── aco-core/                  ← shared types + provenance
-│   ├── aco-perceive/              ← MVP perception (refactored at PROMPT 07)
-│   ├── aco-fuse/, aco-infer/, aco-embed/, aco-learn/, aco-bench/   ← MVP scaffold
-├── infra/terraform/               ← VPC + Cloud SQL + Cloud Run + GCS + Eventarc + IAM
-├── scripts/
-│   ├── agon-up.sh / .ps1          ← turn ON
-│   ├── agon-down.sh / .ps1        ← turn OFF
-│   ├── agon-status.sh / .ps1
-│   └── agon-nuke.sh               ← terraform destroy
-├── migrations/                    ← Postgres schema
-├── corpora/                       ← test inputs
-├── Cargo.toml                     ← workspace + deps
-├── Dockerfile, compose.yaml
-├── Makefile
-└── .env.example
-```
-
-Legend: ✓ done · ◐ in flight · ☐ planned (see `PROJECT_LEDGER/PERCEPTION_LEDGER.md`)
-
----
-
-## Roadmap (15 prompts, ~90 days)
-
-| Phase | Days | Prompts | Deliverable |
-|---|---|---|---|
-| **Foundations** | 1–10 | 01–03 | Doc round-trip: normalize → segment → time extract → evidence spans verify |
-| **Encoders + LLM** | 11–25 | 04–06 | Local ONNX (BGE-M3 / DeBERTa / fastcoref) + Vertex Gemini routing |
-| **Perception + patterns** | 26–45 | 07–09 | Full pipeline emits ACO primitives + 5 named patterns with golden fixtures |
-| **Calibration + provenance** | 46–60 | 10–11 | Calibrated confidence on every primitive · litigation-grade audit export |
-| **Prod deploy + UI** | 61–75 | 12–13 | Split CPU/GPU services · corrections capture in workbench |
-| **Eval + adversarial** | 76–90 | 14–15 | TCGC v0.2 + Inspect-AI + 80-case adversarial pack |
-
-Hard sequencing: 01 → all · 02 → 03/04/05/07 · 05+06 → 07 · 07+08 → 09 · 11 → 14 → 15.
-
-Full spec: **[docs/BUILD_PLAN_PERCEPTION.md](docs/BUILD_PLAN_PERCEPTION.md)** (1246 lines, every prompt self-contained).
-
----
-
-## Where to start reading
-
-| If you want to… | Read |
-|---|---|
-| **Full doc map** | [`docs/INDEX.md`](docs/INDEX.md) |
-| **Copy-paste demo recipes** (curl every endpoint) | [`docs/DEMO_RECIPES.md`](docs/DEMO_RECIPES.md) |
-| See where AGON is going (standalone + trinity) | [`ROADMAP.md`](ROADMAP.md) |
-| Trinity integration (AGON ↔ DIALECTICA ↔ KAIROS) | [`docs/INTEROP.md`](docs/INTEROP.md) |
-| Run it for a few days then stop | [`docs/AGON_GUIDE.md`](docs/AGON_GUIDE.md) §2 + §9 |
-| Understand the architecture | [`docs/AGON_GUIDE.md`](docs/AGON_GUIDE.md) §1 + [`docs/BUILD_PLAN_PERCEPTION.md`](docs/BUILD_PLAN_PERCEPTION.md) |
-| Know what AGON depends on externally | [`docs/EXTERNALS.md`](docs/EXTERNALS.md) |
-| Know what's deployed where | [`docs/DEPLOYMENT_GCP.md`](docs/DEPLOYMENT_GCP.md) |
-| See the typed primitive contracts | [`crates/tacitus-contracts/README.md`](crates/tacitus-contracts/README.md) |
-| See what's done vs in-flight | [`PROJECT_LEDGER/PERCEPTION_LEDGER.md`](PROJECT_LEDGER/PERCEPTION_LEDGER.md) |
-| **Honest accounting of what's real** | [`docs/HONEST_STATE.md`](docs/HONEST_STATE.md) |
-
----
-
-## Open-source choices and why
-
-| Component | Choice | License | Why |
-|---|---|---|---|
-| Embeddings | BGE-M3 | Apache-2.0 | Dense + sparse + ColBERT in one model · multilingual · ONNX-exportable |
-| NLI | DeBERTa-v3-large-mnli (MoritzLaurer) | MIT | Best open NLI checkpoint · INT8 quantizable |
-| Coreference | fastcoref | MIT | License-clean · 78.5 F1 |
-| ONNX Runtime | `ort` 2.x | MIT/Apache | Production-proven · pure Rust |
-| Time extraction | hand-rolled Rust DFA | — | HeidelTime/SUTime are GPL — can't use |
-| Segmenter | hand-rolled SRX-style | — | pragmatic-segmenter is MIT but we own the impl |
-| Postgres | self-hosted on Cloud SQL | OSS | $25/mo at dev tier |
-| Vector store | `pgvector` extension | OSS | No managed vector DB |
-| Annotation | Argilla | Apache-2.0 | Self-host on Cloud Run |
-| Eval orchestrator | Inspect-AI (UK AISI) | Apache-2.0 | Principled |
-| LLM observability | Langfuse self-hosted | MIT | Self-host vs $100/mo SaaS |
-| Remote LLM | Vertex Gemini 2.5 Flash + Pro | paid | Schema-constrained, $0.30/$2.50 per M tokens |
-
-**Vendor strategy: Gemini-only.** Cross-validation done with Flash vs Pro at different temperatures / prompt versions. Anthropic + OpenAI backends in the original plan were dropped 2026-05-13 (see [`docs/AUDIT_2026-05-13.md`](docs/AUDIT_2026-05-13.md) §F-10).
-
----
-
-## Live demo
+AGON is organized as a layered perception stack:
 
 ```text
-URL:      https://agon-dev-tbryoen6qa-uc.a.run.app
-User:     AGON
-Password: AGON
-Status:   https://agon-dev-tbryoen6qa-uc.a.run.app/api/info
+raw text
+   │
+   ▼
+segmentation, speaker turns, time expressions, lexical features
+   │
+   ▼
+structured extraction proposals behind typed contracts
+   │
+   ▼
+actor resolution, commitment state, chronology, span verification
+   │
+   ▼
+friction, contradiction, and pattern proposals
+   │
+   ▼
+calibration, abstention, provenance, review questions
+   │
+   ▼
+API, graph output, and analyst-facing workbench
 ```
 
-Paste a multi-turn conflict (Slack thread, email reply chain, deposition snippet, board minutes). Click *Perceive*. Watch the friction matrix, the actor/claim graph, and the structured ACO primitives appear with verifiable evidence quotes.
+The workspace separates contracts, text processing, temporal analysis, extraction, embeddings, storage, fusion, inference, scoring, CLI, server, and benchmarks into independently testable crates. See [Cargo.toml](Cargo.toml) and [ARCHITECTURE.md](ARCHITECTURE.md) for the current structure.
 
-### Try every endpoint in your terminal — 30 seconds
+Core design principles:
+
+- **Evidence before fluency:** claim-bearing objects should cite exact source text.
+- **Typed contracts:** models propose data; schemas and deterministic code define admissible structure.
+- **Human review:** pattern labels and hypotheses remain contestable and should expose their basis.
+- **Temporal state:** commitments and claims can be made, confirmed, contested, superseded, or broken.
+- **Provider separation:** model choice should not define the public data contract.
+- **Abstention over forced certainty:** insufficient evidence should remain visible as insufficient evidence.
+
+## Build and inspect locally
+
+Requirements vary by feature. A recent Rust toolchain is sufficient to inspect the workspace and run components that do not require external services.
 
 ```bash
-BASE=https://agon-dev-tbryoen6qa-uc.a.run.app
-AUTH="AGON:AGON"
-
-# 1. Liveness — anyone can hit, no auth.
-curl -s $BASE/healthz
-
-# 2. Service info — version, deployment, db status.
-curl -s -u $AUTH $BASE/api/info | jq
-
-# 3. Full backend introspection — layers, ML strategy, registered patterns, doc index.
-curl -s -u $AUTH $BASE/api/system | jq
-
-# 4. Pattern detector catalog — names, kinds, descriptions, live vs planned.
-curl -s -u $AUTH $BASE/api/patterns | jq '.patterns[] | {id, version, live, public_name}'
-
-# 5. Pipeline map — 12 stages with crate + kind + p50 latency.
-curl -s -u $AUTH $BASE/api/pipeline | jq '.stages[] | {order, id, crate, kind, p50_ms}'
-
-# 6. Past perceptions.
-curl -s -u $AUTH $BASE/api/sessions | jq '.sessions[0:3]'
-
-# 7. Run a real perception.
-curl -s -u $AUTH -X POST $BASE/api/perceive \
-  -H "Content-Type: application/json" \
-  -d '{
-    "text": "Sam (Mon): We agreed you own the Q4 deck by Thursday.\nAlex (Mon): Sounds good.\nAlex (Thu): I never said I would own it.\nSam (Thu): That is not what we discussed.\nAlex (Thu): You are putting words in my mouth.",
-    "title": "Q4 deck dispute"
-  }' | jq '{
-    elapsed_ms,
-    patterns: .patterns_detected[] | {pattern_id, public_name, raw_confidence, evidence_excerpts},
-    friction: .friction_matrix.pairs[0],
-    quality: .quality_gates
-  }'
+git clone https://github.com/sargonxg/AGON.git
+cd AGON
+cargo test --workspace
+cargo run -p aco-server --bin agon-server
 ```
 
-### What you should see
+Model-backed extraction, database features, and cloud deployment require additional configuration. Review [.env.example](.env.example), [BUILDPLAN.md](BUILDPLAN.md), and the operator documentation before supplying credentials or data. Do not upload confidential material until the deployment, retention, provider, and access-control path has been independently reviewed.
 
-`/api/perceive` on the Q4 deck dispute returns (real, live):
+## Current evidence boundary
 
-```json
-{
-  "patterns_detected": [
-    {
-      "pattern_id": "darvo",
-      "pattern_version": "0.1.0",
-      "public_name": "possible role-reversal pattern",
-      "raw_confidence": 0.70,
-      "actors_involved": ["actor_alex"],
-      "evidence_excerpts": ["I never", "You're putting words in my mouth"],
-      "explanation": "Actor `actor_alex` denied at turn 2 (\"I never\") then attacked/reframed the accuser at turn 4 (\"You're putting words in my mouth\"). Classical role-reversal sequence."
-    }
-  ],
-  "friction_matrix": {
-    "pairs": [{"a_label":"Alex","b_label":"Sam","heat":100,"reasons":["denial pressure","pattern: defensiveness","escalation signal", "..."]}]
-  },
-  "quality_gates": [
-    {"label":"Verified evidence coverage","status":"pass","detail":"33/33 primitive evidence quotes verified"},
-    {"label":"Actor ambiguity","status":"pass"},
-    {"label":"Conflict signal strength","status":"pass"}
-  ]
-}
-```
+The repository contains substantial implementation work, but architecture, test counts, fixtures, and demonstrations do not by themselves establish analyst usefulness or real-world accuracy. Public claims about extraction quality, contradiction detection, calibration, pattern detection, or downstream decision improvement require published evaluation against appropriate baselines and human review.
 
-### Web workbench
+Named conflict patterns are particularly sensitive. A textual resemblance to a pattern is not a diagnosis, intent determination, or conclusion about a person. Public interfaces should use neutral language, expose supporting spans, and make alternative explanations easy to record.
 
-Open the URL in a browser. Login `AGON / AGON`. Paste a multi-turn dispute. Click *Perceive*. You'll see the same data rendered as a force-directed graph + friction matrix + named patterns + raw JSON inspector.
+## Place in the TACITUS stack
 
----
+- **AGON** explores evidence-linked conflict perception.
+- [KAIROS](https://github.com/sargonxg/KAIROS-temporal-vision-TACITUS) explores temporal structure: events, episodes, overlap, delay, and commitment status.
+- [DIALECTICA](https://github.com/sargonxg/A3_DIALECTICAbyTACITUS_v3) builds reviewable, portable context capsules for PRAXIS.
+- [TCGC](https://github.com/sargonxg/TCGC_TACITUS-Conflict-Grammar-Corpus_BENCHMARK) provides a benchmark surface for structural conflict reasoning.
 
-## Contributing
+These repositories share a research direction but should be judged by their individual code, tests, status statements, and published evidence.
 
-This is built in public by Giulio Catanzariti for [TACITUS](https://www.tacitus.me). The 15-prompt build plan is designed for `Claude Code Opus 4.7` to execute one prompt per session, one PR each. If you want to participate:
+## Documentation
 
-- Pick the next prompt in [`PROJECT_LEDGER/PERCEPTION_LEDGER.md`](PROJECT_LEDGER/PERCEPTION_LEDGER.md)
-- Branch `sprint/<NN>-<name>`
-- Implement against the verification block in [`docs/BUILD_PLAN_PERCEPTION.md`](docs/BUILD_PLAN_PERCEPTION.md)
-- Open PR · the ledger row turns ✓ on merge
+- [ARCHITECTURE.md](ARCHITECTURE.md) — system design and contracts
+- [BUILDPLAN.md](BUILDPLAN.md) — implementation plan and dependencies
+- [RESEARCH_QUESTIONS.md](RESEARCH_QUESTIONS.md) — open empirical and design questions
+- [CONTRIBUTING.md](CONTRIBUTING.md) — contribution guidance
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — participation expectations
 
-Issues with the spec? Open one tagged `spec-drift`.
+## License status
 
----
-
-## License
-
-MIT OR Apache-2.0, at your option. See [`LICENSE`](LICENSE).
-
----
-
-## Cite
-
-```bibtex
-@software{agon2026,
-  author = {Catanzariti, Giulio},
-  title  = {AGON: A Perception Engine for Human Conflict},
-  year   = {2026},
-  url    = {https://github.com/sargonxg/AGON},
-  note   = {TACITUS},
-}
-```
-
----
-
-*Maintainer: Giulio Catanzariti · [`giuliocatanzariti@gmail.com`](mailto:giuliocatanzariti@gmail.com) · TACITUS — making conflict legible.*
+The licensing posture is not yet finalized. The root [LICENSE](LICENSE) file controls the current repository; do not infer redistribution rights from package metadata or badges. The root license and Cargo package metadata should be aligned before any formal public release.
