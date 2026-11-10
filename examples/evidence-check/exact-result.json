@@ -1,0 +1,8 @@
+{
+  "canonical_text_blake3": "4e32f42e2a517d8fe4ebf8b7552a55c6414406bd47a60c6d175d32e8f2d38f91",
+  "exact": true,
+  "format": "agon-evidence-check/1",
+  "offset_unit": "unicode_codepoints",
+  "scope": "Exact quotation consistency only; does not establish semantic entailment, source trust or current applicability.",
+  "verification": "Exact"
+}

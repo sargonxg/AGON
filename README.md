@@ -84,6 +84,14 @@ cargo run -p aco-server --bin agon-server
 
 Model-backed extraction, database features, and cloud deployment require additional configuration. Review [.env.example](.env.example), [BUILDPLAN.md](BUILDPLAN.md), and the operator documentation before supplying credentials or data. Do not upload confidential material until the deployment, retention, provider, and access-control path has been independently reviewed.
 
+## Check an actual evidence span
+
+The CLI can now [verify a model-supplied quotation](docs/evidence-verification.md) against exact canonical source text. It checks the displayed quote and hash together, uses Unicode code-point bounds, and exits nonzero for a non-exact result. This is a working source-integrity tool, separate from the experimental conflict-reasoning modules.
+
+```sh
+cargo run --locked -p aco-cli -- verify-evidence --text canonical-source.txt --span evidence-span.json
+```
+
 ## Current evidence boundary
 
 The repository contains substantial implementation work, but architecture, test counts, fixtures, and demonstrations do not by themselves establish analyst usefulness or real-world accuracy. Public claims about extraction quality, contradiction detection, calibration, pattern detection, or downstream decision improvement require published evaluation against appropriate baselines and human review.
@@ -110,3 +118,5 @@ These repositories share a research direction but should be judged by their indi
 ## License status
 
 The licensing posture is not yet finalized. The root [LICENSE](LICENSE) file controls the current repository; do not infer redistribution rights from package metadata or badges. The root license and Cargo package metadata should be aligned before any formal public release.
+
+Package manifests reference the existing root LICENSE file. They do not declare an open-source dual-license grant; the existing all-rights-reserved posture is unchanged.

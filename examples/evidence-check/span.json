@@ -1,0 +1,10 @@
+{
+  "segment_id": "fictional-drafting-exercise",
+  "char_start_canonical": 27,
+  "char_end_canonical": 50,
+  "char_start_raw": 27,
+  "char_end_raw": 50,
+  "verbatim_quote": "subject to instructions",
+  "quote_hash": "62af232122703d6679979ab5011c108b1cfe26963571317d7f17f740a9890814",
+  "normalization_version": "0.1.0"
+}

@@ -3,7 +3,7 @@ name = "aco-storage"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-license.workspace = true
+license-file.workspace = true
 repository.workspace = true
 description = "Postgres + pgvector + in-memory petgraph + exports."
 
