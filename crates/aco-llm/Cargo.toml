@@ -25,6 +25,5 @@ blake3 = { workspace = true }
 governor = { workspace = true }
 secrecy = { workspace = true }
 reqwest = { workspace = true }
-google-ai-rs = { workspace = true }
 parking_lot = { workspace = true }
 once_cell = { workspace = true }

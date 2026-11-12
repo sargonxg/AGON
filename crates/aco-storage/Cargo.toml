@@ -23,5 +23,3 @@ secrecy = { workspace = true }
 blake3 = { workspace = true }
 
 [dev-dependencies]
-testcontainers = { workspace = true }
-testcontainers-modules = { workspace = true }
