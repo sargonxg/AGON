@@ -30,3 +30,5 @@ cargo test --locked -p aco-storage --test postgres_migrations -- --ignored
 CI supplies the disposable PostgreSQL service and explicit integration-test invocation. Security-tool versions are pinned. Docker's Rust builder is aligned with the actual 1.95.0 toolchain and the runtime carries LICENSE, NOTICE and the third-party license text. A passing native suite alone is not a deployed service or a model-quality/customer-benefit result.
 
 This remains independent bounded research, with no new App dependency, cross-application converter, provider activation or production deployment.
+
+The actual release Docker image also builds and starts as `nonroot`, read-only with dropped capabilities and no network. A separate loopback probe in the same isolated namespace returns HTTP 200 `ok` in mock-fixture mode. LICENSE, NOTICE and all gathered dependency notices were copied out and matched to source SHA-256. No hosted deployment, registry publication or provider/model call was made. The source-bind BuildKit layout also avoids excessive copied layers on vfs builders.
