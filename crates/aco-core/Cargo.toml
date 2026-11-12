@@ -3,7 +3,7 @@ name = "aco-core"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-license-file.workspace = true
+license.workspace = true
 repository.workspace = true
 description = "ACO ontology: primitives, provenance, IDs, errors. No I/O."
 

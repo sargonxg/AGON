@@ -15,7 +15,7 @@ The verifier now rejects a displayed quotation whose hash differs from its decla
 
 This establishes quotation consistency, not source trust, semantic entailment, current applicability or expert approval. See the [model-assisted policy pipeline](https://github.com/sargonxg/TACITUS-Knowledge-Pipeline-open/tree/main/reference-pipeline) and [Workbench](https://github.com/sargonxg/tacitus-workbench) for a separate end-to-end drafting example. Those formats are not automatically interchangeable with AGON's contract.
 
-AGON's existing all-rights-reserved license remains unchanged; workspace package metadata is not a new license grant.
+Original TACITUS code is Apache-2.0, as approved by the repository owner on 12 November 2026. Third-party source/evidence/model terms remain separate; preserve LICENSE, NOTICE and upstream credit.
 
 ## Run the committed drafting exercise
 

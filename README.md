@@ -7,7 +7,7 @@
 
 Represent claims, actors, interests, constraints and commitments as reviewable objects anchored to source spans.
 
-**Experimental conflict engine.** Experimental perception engine; inferred interests and narratives are proposals. The current LICENSE reserves all rights until a final licensing decision; it grants no redistribution permission.
+**Experimental conflict engine.** Experimental perception engine; inferred interests and narratives are proposals. Original TACITUS code is Apache-2.0; third-party code, model weights and evidence retain their own terms.
 
 [Setup, code walkthrough, research & verification](TACITUS_GUIDE.md) · [Play the original 8-bit teaching adventure](tacitus-demo/index.html) · [Demo credits](tacitus-demo/CREDITS.md)
 
@@ -136,4 +136,6 @@ These repositories share a research direction but should be judged by their indi
 
 The licensing posture is not yet finalized. The root [LICENSE](LICENSE) file controls the current repository; do not infer redistribution rights from package metadata or badges. The root license and Cargo package metadata should be aligned before any formal public release.
 
-Package manifests reference the existing root LICENSE file. They do not declare an open-source dual-license grant; the existing all-rights-reserved posture is unchanged.
+Package manifests declare Apache-2.0 for original TACITUS code, as approved by the repository owner on 12 November 2026. Preserve LICENSE, NOTICE and third-party notices. External evidence and model weights retain their separate terms.
+
+[Current native, database, security and Apache-2.0 verification](docs/LOCAL_VERIFICATION_2026-11-12.md) · [Third-party rights and credits](THIRD_PARTY_NOTICES.md).

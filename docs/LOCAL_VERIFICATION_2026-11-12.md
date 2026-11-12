@@ -1,17 +1,32 @@
-# Local native checkpoint · 12 November 2026
+# Local native/security checkpoint · 12 November 2026
 
-Rust 1.95.0 locked workspace check, formatting, Clippy with warnings denied and 75 tests pass locally. Removes unreachable parked module declarations that made rustfmt search for nonexistent files, uses stable formatting settings, pins Rust/CI to 1.95.0 and applies Clippy suggestions without suppressing warnings. The parked ONNX modules remain unimplemented; no model download or inference is enabled. The existing LICENSE reserves all rights until a final licensing decision.
+Original TACITUS code is now **Apache-2.0**, as explicitly selected by the repository owner. LICENSE, NOTICE and the preserved third-party copyright/license texts identify the boundary; model weights, evidence and externally authored material retain their own terms.
 
-The exact candidate source is recorded by the accompanying PR; local checks are distinct from any remote CI. Run `cargo fmt --all -- --check`, `cargo check --locked --workspace --all-targets`, `cargo clippy --locked --workspace --all-targets -- -D warnings`, then `cargo test --locked --workspace`. Existing fixtures/tests cover the changed code; these checks do not establish live provider, model-quality, hosted authentication or analytical benefit.
+## Verified local scope
 
-This remains bounded research with a distinct contract. It is not promoted to a dependency of the current invited App. No deployment, paid service, automatic extraction or cross-application format conversion is enabled.
+Rust 1.95.0 locked workspace/all-target checking, stable formatting and strict Clippy pass. The normal workspace suite passes 76 tests with 1 explicit database prerequisite skip, including the new embedded-migration parity test; the disposable-database test is explicitly opt-in and also passes against PostgreSQL 16. `cargo audit` reports zero vulnerabilities. `cargo deny --all-features check` passes advisories, bans, licenses and sources. The four previously recorded unmaintained-dependency warnings/exceptions remain visible; no new advisory ignore or license waiver was added.
 
-## Dependency-security follow-up: release gate remains open
+The PostgreSQL contract applies the legacy directory migrations, stores a Unicode historical session, replays the embedded migrations twice and verifies identical versions/checksums and preserved source/summary/JSON. It uses a local disposable database; no hosted database or production migration is touched.
 
-The resolved Cargo lockfile audit was refreshed rather than relying on the older August CI failure. Compatible security updates and removal of unused Google AI, DOCX, SMT and container-test dependencies reduce the audit from 26 advisory entries to two. PostgreSQL SQLx defaults are explicit; parser code is not activated by the updated lopdf dependency. Existing neural inference remains unimplemented/opt-in. Updated workspace compilation, strict Clippy and all 75 tests pass locally.
+## What changed and why
 
-Remaining lockfile advisories: [libsqlite3-sys / RUSTSEC-2026-0459](https://rustsec.org/advisories/RUSTSEC-2026-0459.html) and [rsa / RUSTSEC-2023-0071](https://rustsec.org/advisories/RUSTSEC-2023-0071.html), associated with the resolved SQLx backend graph. Do not treat the default Linux PostgreSQL build as proof that every resolved optional backend is safe. A dependency/DB contract upgrade requires its own tested acceptance.
+SQLx's umbrella/macro resolution brought unused SQLite/MySQL packages into the lockfile audit. The storage crate now uses **exactly matched sqlx-core/sqlx-postgres 0.8.6** directly. The same query runtime and immutable SQL are retained; migration records use SQLx's own SHA-384 calculation. The public MigrationSource interface embeds the existing three SQL files without multi-driver macros. A directory-parity test fails if a future migration is not embedded. Because SQLx core/driver APIs are semver-exempt, any version update must keep their exact versions aligned and rerun this real database acceptance.
 
-The all-feature `cargo deny check` still fails on the repository's deliberately undecided, all-rights-reserved license and the unmaintained transitive ttf-parser dependency. Other unmaintained dependency warnings remain recorded. No new advisory exception or third-party licensing waiver was added. MIT-0 is explicitly recognized as a permissive upstream license; the repository's own LICENSE is unchanged and does not grant redistribution.
+Unused PDF-parser dependencies were removed from the still-placeholder perception module; this does not remove working extraction. Parked ONNX modules remain unimplemented and no model download/inference is activated. Existing earlier formatting/Clippy repairs remain.
 
-This PR remains a candidate pending those release decisions. It is not a production-ready service, an App dependency, a verified database deployment or permission to redistribute. Keep the audit gates visible; do not replace them with the passing software-test count.
+## Reproduce
+
+```sh
+cargo fmt --all -- --check
+cargo check --locked --workspace --all-targets
+cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo test --locked --workspace
+cargo audit
+cargo deny --all-features check
+# Set AGON_TEST_DATABASE_URL only to a disposable PostgreSQL database:
+cargo test --locked -p aco-storage --test postgres_migrations -- --ignored
+```
+
+CI supplies the disposable PostgreSQL service and explicit integration-test invocation. Security-tool versions are pinned. Docker's Rust builder is aligned with the actual 1.95.0 toolchain and the runtime carries LICENSE, NOTICE and the third-party license text. A passing native suite alone is not a deployed service or a model-quality/customer-benefit result.
+
+This remains independent bounded research, with no new App dependency, cross-application converter, provider activation or production deployment.

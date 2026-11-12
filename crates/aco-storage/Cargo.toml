@@ -3,7 +3,7 @@ name = "aco-storage"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-license-file.workspace = true
+license.workspace = true
 repository.workspace = true
 description = "Postgres + pgvector + in-memory petgraph + exports."
 
@@ -16,10 +16,12 @@ tracing = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 chrono = { workspace = true }
-sqlx = { workspace = true }
+sqlx-core = { workspace = true }
+sqlx-postgres = { workspace = true }
 uuid = { workspace = true }
 async-trait = { workspace = true }
 secrecy = { workspace = true }
 blake3 = { workspace = true }
+futures = { workspace = true }
 
 [dev-dependencies]

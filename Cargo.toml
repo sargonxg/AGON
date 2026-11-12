@@ -24,8 +24,8 @@ members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.78"
-license-file = "LICENSE"
+rust-version = "1.95"
+license = "Apache-2.0"
 repository = "https://github.com/sargonxg/AGON"
 authors = ["TACITUS <hello@tacitus.me>", "Giulio Catanzariti <giuliocatanzariti@gmail.com>"]
 
@@ -52,8 +52,8 @@ governor = "0.6"
 bytes = "1"
 
 # Database
-sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "postgres", "uuid", "chrono", "json", "macros", "migrate"] }
-pgvector = { version = "0.4", features = ["sqlx"] }
+sqlx-core = { version = "=0.8.6", default-features = false, features = ["_rt-tokio", "uuid", "chrono", "json", "migrate"] }
+sqlx-postgres = { version = "=0.8.6", default-features = false, features = ["uuid", "chrono", "json", "migrate"] }
 
 # Inference
 ascent = "0.8"
@@ -86,7 +86,6 @@ console = "0.15"
 dialoguer = "0.11"
 
 # Document parsing
-lopdf = "0.42"
 pulldown-cmark = "0.12"
 
 # Testing
