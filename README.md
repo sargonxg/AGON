@@ -139,3 +139,5 @@ The licensing posture is not yet finalized. The root [LICENSE](LICENSE) file con
 Package manifests declare Apache-2.0 for original TACITUS code, as approved by the repository owner on 12 November 2026. Preserve LICENSE, NOTICE and third-party notices. External evidence and model weights retain their separate terms.
 
 [Current native, database, security and Apache-2.0 verification](docs/LOCAL_VERIFICATION_2026-11-12.md) · [Third-party rights and credits](THIRD_PARTY_NOTICES.md).
+
+The Dockerfile requires BuildKit (enabled by default in current Docker). It builds locked source with Rust 1.95.0, retains embedded migrations and license notices, and avoids repeated source-copy layers on vfs builders.

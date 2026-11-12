@@ -1,33 +1,28 @@
 # syntax=docker/dockerfile:1.6
 FROM rust:1.95.0-slim-bookworm AS builder
-
-WORKDIR /app
 ARG CARGO_BUILD_JOBS=2
+WORKDIR /build
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      pkg-config libssl-dev ca-certificates g++ \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy workspace + only the crates the binary needs (minimal closure).
-COPY Cargo.toml Cargo.lock rust-toolchain.toml LICENSE NOTICE THIRD_PARTY_LICENSES.txt ./
-COPY crates ./crates
-COPY migrations ./migrations
-
-# Cache deps then build agon-server release.
-RUN --mount=type=secret,id=proxy_ca \
+# Read source through BuildKit rather than copying the entire Rust toolchain
+# filesystem for every source layer on vfs builders. Source stays read-only;
+# the locked build and immutable migration includes use /out for all outputs.
+RUN --mount=type=bind,source=.,target=/source,readonly \
+    --mount=type=secret,id=proxy_ca \
+    set -eu; \
     if [ -f /run/secrets/proxy_ca ]; then \
       export CARGO_HTTP_CAINFO=/run/secrets/proxy_ca SSL_CERT_FILE=/run/secrets/proxy_ca CURL_CA_BUNDLE=/run/secrets/proxy_ca; \
     fi; \
-    cargo build --locked --release --bin agon-server --package aco-server
+    apt-get update; \
+    apt-get install -y --no-install-recommends pkg-config libssl-dev ca-certificates g++; \
+    rm -rf /var/lib/apt/lists/*; \
+    cargo build --locked --release --manifest-path /source/Cargo.toml --target-dir /out --bin agon-server --package aco-server; \
+    install -m 0644 /source/LICENSE /source/NOTICE /source/THIRD_PARTY_LICENSES.txt /out/
 
 FROM gcr.io/distroless/cc-debian12:nonroot
-
-COPY --from=builder /app/target/release/agon-server /usr/local/bin/agon-server
-
-COPY --from=builder /app/LICENSE /usr/share/licenses/agon/LICENSE
-COPY --from=builder /app/NOTICE /usr/share/licenses/agon/NOTICE
-COPY --from=builder /app/THIRD_PARTY_LICENSES.txt /usr/share/licenses/agon/THIRD_PARTY_LICENSES.txt
-
+COPY --from=builder /out/release/agon-server /usr/local/bin/agon-server
+COPY --from=builder /out/LICENSE /usr/share/licenses/agon/LICENSE
+COPY --from=builder /out/NOTICE /usr/share/licenses/agon/NOTICE
+COPY --from=builder /out/THIRD_PARTY_LICENSES.txt /usr/share/licenses/agon/THIRD_PARTY_LICENSES.txt
 USER nonroot
 EXPOSE 8080
 ENTRYPOINT ["/usr/local/bin/agon-server"]
