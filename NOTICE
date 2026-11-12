@@ -1,0 +1,14 @@
+AGON
+Copyright 2026 TACITUS / Giulio Catanzariti and contributors.
+
+Original TACITUS code is licensed under Apache-2.0, as approved by the
+repository owner on 12 November 2026. Existing contributor rights apply.
+
+Third-party libraries, model weights, research papers, source documents,
+fixtures and other externally authored material retain their own licenses
+and attribution. Apache-2.0 does not grant new rights over those materials.
+See THIRD_PARTY_NOTICES.md and the original source/research credits.
+
+No authorship or analytical-performance claim is made for an upstream
+library, paper or model. Optional model downloads and live provider calls
+remain separately controlled and are not part of this licensing change.

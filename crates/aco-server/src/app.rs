@@ -963,7 +963,8 @@ fn render_patterns_envelope(patterns: &[serde_json::Value]) -> String {
     if patterns.is_empty() {
         return String::new();
     }
-    let mut s = String::from("=== Patterns detected pre-LLM (deterministic, treat as ground truth) ===\n");
+    let mut s =
+        String::from("=== Patterns detected pre-LLM (deterministic, treat as ground truth) ===\n");
     for p in patterns {
         let id = p.get("pattern_id").and_then(|v| v.as_str()).unwrap_or("?");
         let ver = p.get("pattern_version").and_then(|v| v.as_str()).unwrap_or("?");
@@ -973,9 +974,7 @@ fn render_patterns_envelope(patterns: &[serde_json::Value]) -> String {
         let actors = p
             .get("actors_involved")
             .and_then(|v| v.as_array())
-            .map(|a| {
-                a.iter().filter_map(|x| x.as_str()).collect::<Vec<_>>().join(", ")
-            })
+            .map(|a| a.iter().filter_map(|x| x.as_str()).collect::<Vec<_>>().join(", "))
             .unwrap_or_default();
         let evidence = p
             .get("evidence_excerpts")

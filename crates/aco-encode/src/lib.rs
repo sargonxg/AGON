@@ -19,12 +19,8 @@ pub mod traits;
 // API is in flux (rc.10 vs rc.12 incompatibility). Next focused turn pins
 // the version + ONNX Runtime native lib in the Dockerfile and re-enables
 // these modules. See docs/HONEST_STATE.md.
-#[cfg(all(feature = "onnx", any()))]
-pub mod bge_m3;
-#[cfg(all(feature = "onnx", any()))]
-pub mod deberta_nli;
 
-pub use traits::{EmbedResult, Encoder, EncodeError, NliLabel, NliResult};
+pub use traits::{EmbedResult, EncodeError, Encoder, NliLabel, NliResult};
 
 // Parked until ort wiring is finalized — see comment above.
 // pub use bge_m3::BgeM3Encoder;

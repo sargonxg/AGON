@@ -37,9 +37,15 @@ static REVERSE_RX: Lazy<Regex> = Lazy::new(|| {
 });
 
 impl ConflictPattern for DarvoDetector {
-    fn id(&self) -> &'static str { "darvo" }
-    fn version(&self) -> &'static str { "0.1.0" }
-    fn public_name(&self) -> &'static str { "possible role-reversal pattern" }
+    fn id(&self) -> &'static str {
+        "darvo"
+    }
+    fn version(&self) -> &'static str {
+        "0.1.0"
+    }
+    fn public_name(&self) -> &'static str {
+        "possible role-reversal pattern"
+    }
 
     fn detect(&self, ctx: &PatternContext) -> Vec<PatternMatch> {
         let mut matches = Vec::new();
@@ -118,7 +124,11 @@ impl ConflictPattern for DarvoDetector {
 fn canonical_actor_id(label: &str) -> String {
     let mut s = String::from("actor_");
     for c in label.chars() {
-        if c.is_ascii_alphanumeric() { s.push(c.to_ascii_lowercase()); } else { s.push('_'); }
+        if c.is_ascii_alphanumeric() {
+            s.push(c.to_ascii_lowercase());
+        } else {
+            s.push('_');
+        }
     }
     s
 }
@@ -137,10 +147,30 @@ mod tests {
     #[test]
     fn detects_textbook_darvo() {
         let turns = vec![
-            Turn { idx: 0, speaker: Some("Sam".into()), body: "You promised Thursday.".into(), char_offset: 0 },
-            Turn { idx: 1, speaker: Some("Alex".into()), body: "I never said I'd own it.".into(), char_offset: 0 },
-            Turn { idx: 2, speaker: Some("Sam".into()), body: "That's not what we discussed.".into(), char_offset: 0 },
-            Turn { idx: 3, speaker: Some("Alex".into()), body: "You're putting words in my mouth.".into(), char_offset: 0 },
+            Turn {
+                idx: 0,
+                speaker: Some("Sam".into()),
+                body: "You promised Thursday.".into(),
+                char_offset: 0,
+            },
+            Turn {
+                idx: 1,
+                speaker: Some("Alex".into()),
+                body: "I never said I'd own it.".into(),
+                char_offset: 0,
+            },
+            Turn {
+                idx: 2,
+                speaker: Some("Sam".into()),
+                body: "That's not what we discussed.".into(),
+                char_offset: 0,
+            },
+            Turn {
+                idx: 3,
+                speaker: Some("Alex".into()),
+                body: "You're putting words in my mouth.".into(),
+                char_offset: 0,
+            },
         ];
         let lex = aco_lex::LexicalFeatures::default();
         let c = ctx(&turns, &lex);
@@ -157,9 +187,12 @@ mod tests {
 
     #[test]
     fn no_match_when_no_denial() {
-        let turns = vec![
-            Turn { idx: 0, speaker: Some("Alex".into()), body: "You're putting words in my mouth.".into(), char_offset: 0 },
-        ];
+        let turns = vec![Turn {
+            idx: 0,
+            speaker: Some("Alex".into()),
+            body: "You're putting words in my mouth.".into(),
+            char_offset: 0,
+        }];
         let lex = aco_lex::LexicalFeatures::default();
         let c = ctx(&turns, &lex);
         let detector = DarvoDetector;
@@ -169,8 +202,18 @@ mod tests {
     #[test]
     fn no_match_when_no_reverse() {
         let turns = vec![
-            Turn { idx: 0, speaker: Some("Alex".into()), body: "I never said that.".into(), char_offset: 0 },
-            Turn { idx: 1, speaker: Some("Sam".into()), body: "But you did.".into(), char_offset: 0 },
+            Turn {
+                idx: 0,
+                speaker: Some("Alex".into()),
+                body: "I never said that.".into(),
+                char_offset: 0,
+            },
+            Turn {
+                idx: 1,
+                speaker: Some("Sam".into()),
+                body: "But you did.".into(),
+                char_offset: 0,
+            },
         ];
         let lex = aco_lex::LexicalFeatures::default();
         let c = ctx(&turns, &lex);
@@ -181,8 +224,18 @@ mod tests {
     #[test]
     fn no_match_when_different_speakers_for_deny_and_reverse() {
         let turns = vec![
-            Turn { idx: 0, speaker: Some("Alex".into()), body: "I never agreed.".into(), char_offset: 0 },
-            Turn { idx: 1, speaker: Some("Sam".into()),  body: "You're putting words in my mouth.".into(), char_offset: 0 },
+            Turn {
+                idx: 0,
+                speaker: Some("Alex".into()),
+                body: "I never agreed.".into(),
+                char_offset: 0,
+            },
+            Turn {
+                idx: 1,
+                speaker: Some("Sam".into()),
+                body: "You're putting words in my mouth.".into(),
+                char_offset: 0,
+            },
         ];
         let lex = aco_lex::LexicalFeatures::default();
         let c = ctx(&turns, &lex);
@@ -193,12 +246,22 @@ mod tests {
     #[test]
     fn confidence_decays_with_gap() {
         let turns = vec![
-            Turn { idx: 0, speaker: Some("Alex".into()), body: "I never said that.".into(), char_offset: 0 },
-            Turn { idx: 1, speaker: Some("Sam".into()),  body: "okay".into(), char_offset: 0 },
-            Turn { idx: 2, speaker: Some("Sam".into()),  body: "okay".into(), char_offset: 0 },
-            Turn { idx: 3, speaker: Some("Sam".into()),  body: "okay".into(), char_offset: 0 },
-            Turn { idx: 4, speaker: Some("Sam".into()),  body: "okay".into(), char_offset: 0 },
-            Turn { idx: 5, speaker: Some("Alex".into()), body: "You're attacking me.".into(), char_offset: 0 },
+            Turn {
+                idx: 0,
+                speaker: Some("Alex".into()),
+                body: "I never said that.".into(),
+                char_offset: 0,
+            },
+            Turn { idx: 1, speaker: Some("Sam".into()), body: "okay".into(), char_offset: 0 },
+            Turn { idx: 2, speaker: Some("Sam".into()), body: "okay".into(), char_offset: 0 },
+            Turn { idx: 3, speaker: Some("Sam".into()), body: "okay".into(), char_offset: 0 },
+            Turn { idx: 4, speaker: Some("Sam".into()), body: "okay".into(), char_offset: 0 },
+            Turn {
+                idx: 5,
+                speaker: Some("Alex".into()),
+                body: "You're attacking me.".into(),
+                char_offset: 0,
+            },
         ];
         let lex = aco_lex::LexicalFeatures::default();
         let c = ctx(&turns, &lex);

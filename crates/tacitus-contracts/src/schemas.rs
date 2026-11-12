@@ -12,13 +12,12 @@ const EVIDENCE_SPAN: &str = include_str!("../schemas/evidence_span.json");
 
 fn build(file_content: &str) -> Validator {
     let mut root: Value = serde_json::from_str(file_content).expect("schema is not valid JSON");
-    let es: Value = serde_json::from_str(EVIDENCE_SPAN).expect("evidence_span.json is not valid JSON");
+    let es: Value =
+        serde_json::from_str(EVIDENCE_SPAN).expect("evidence_span.json is not valid JSON");
 
     // Inject EvidenceSpan as a local $def.
     if let Some(obj) = root.as_object_mut() {
-        let defs = obj
-            .entry("$defs".to_string())
-            .or_insert_with(|| json!({}));
+        let defs = obj.entry("$defs".to_string()).or_insert_with(|| json!({}));
         if let Some(d) = defs.as_object_mut() {
             d.insert("evidence_span".into(), es);
         }

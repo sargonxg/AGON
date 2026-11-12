@@ -46,8 +46,14 @@ pub fn allen_relation(a: &TimeInterval, b: &TimeInterval) -> Option<AllenRelatio
 }
 
 fn absolute_endpoints(i: &TimeInterval) -> Option<(DateTime<Utc>, DateTime<Utc>)> {
-    let s = match &i.start { TimePoint::Absolute(t) => *t, _ => return None };
-    let e = match &i.end { TimePoint::Absolute(t) => *t, _ => return None };
+    let s = match &i.start {
+        TimePoint::Absolute(t) => *t,
+        _ => return None,
+    };
+    let e = match &i.end {
+        TimePoint::Absolute(t) => *t,
+        _ => return None,
+    };
     Some((s, e))
 }
 
@@ -58,9 +64,7 @@ mod tests {
 
     fn iv(s: &str, e: &str) -> TimeInterval {
         let parse = |x: &str| -> DateTime<Utc> {
-            NaiveDateTime::parse_from_str(x, "%Y-%m-%d %H:%M:%S")
-                .unwrap()
-                .and_utc()
+            NaiveDateTime::parse_from_str(x, "%Y-%m-%d %H:%M:%S").unwrap().and_utc()
         };
         TimeInterval {
             start: TimePoint::Absolute(parse(s)),

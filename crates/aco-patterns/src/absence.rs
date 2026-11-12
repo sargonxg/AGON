@@ -41,9 +41,15 @@ impl DocType {
 }
 
 impl ConflictPattern for ConspicuousAbsenceDetector {
-    fn id(&self) -> &'static str { "conspicuous_absence" }
-    fn version(&self) -> &'static str { "0.1.0" }
-    fn public_name(&self) -> &'static str { "expected-but-missing pattern" }
+    fn id(&self) -> &'static str {
+        "conspicuous_absence"
+    }
+    fn version(&self) -> &'static str {
+        "0.1.0"
+    }
+    fn public_name(&self) -> &'static str {
+        "expected-but-missing pattern"
+    }
 
     fn detect(&self, ctx: &PatternContext) -> Vec<PatternMatch> {
         let inferred_types = infer_document_types(ctx);
@@ -94,7 +100,10 @@ impl ConflictPattern for ConspicuousAbsenceDetector {
                     explanation: format!(
                         "Document looks like {} but contains zero `{}` primitives. {}. \
                          Strength: {}.",
-                        dt.as_str(), kind, reason, strength
+                        dt.as_str(),
+                        kind,
+                        reason,
+                        strength
                     ),
                     evidence_excerpts: Vec::new(),
                 });
@@ -107,22 +116,34 @@ impl ConflictPattern for ConspicuousAbsenceDetector {
 fn expectations_for(dt: DocType) -> Vec<(&'static str, &'static str, &'static str)> {
     match dt {
         DocType::Minutes => vec![
-            ("commitment", "structural", "Minutes ordinarily record commitments made during the meeting"),
-            ("event",      "soft",       "Minutes ordinarily reference at least one scheduled or past event"),
+            (
+                "commitment",
+                "structural",
+                "Minutes ordinarily record commitments made during the meeting",
+            ),
+            ("event", "soft", "Minutes ordinarily reference at least one scheduled or past event"),
         ],
         DocType::Deposition => vec![
-            ("claim",      "structural", "A deposition is fundamentally a record of witness claims"),
-            ("denial",     "soft",       "Most contested matters elicit at least one denial"),
+            ("claim", "structural", "A deposition is fundamentally a record of witness claims"),
+            ("denial", "soft", "Most contested matters elicit at least one denial"),
         ],
-        DocType::EmailThread => vec![
-            ("commitment", "soft",       "Email threads about ongoing work usually surface a commitment"),
-        ],
-        DocType::Negotiation => vec![
-            ("claim_numeric", "structural", "A negotiation without numbers is not yet a negotiation"),
-        ],
+        DocType::EmailThread => vec![(
+            "commitment",
+            "soft",
+            "Email threads about ongoing work usually surface a commitment",
+        )],
+        DocType::Negotiation => vec![(
+            "claim_numeric",
+            "structural",
+            "A negotiation without numbers is not yet a negotiation",
+        )],
         DocType::Dispute => vec![
-            ("denial",     "structural", "A dispute contains at least one denial of an assertion by definition"),
-            ("commitment", "soft",       "Most disputes involve a contested commitment"),
+            (
+                "denial",
+                "structural",
+                "A dispute contains at least one denial of an assertion by definition",
+            ),
+            ("commitment", "soft", "Most disputes involve a contested commitment"),
         ],
     }
 }
@@ -131,19 +152,15 @@ fn infer_document_types(ctx: &PatternContext) -> Vec<DocType> {
     let mut out = Vec::new();
 
     // Deposition: any speaker-turn detected as TurnKind::Deposition.
-    let has_deposition_tag = ctx
-        .speaker_turns
-        .iter()
-        .any(|t| matches!(t.kind, aco_text::TurnKind::Deposition));
+    let has_deposition_tag =
+        ctx.speaker_turns.iter().any(|t| matches!(t.kind, aco_text::TurnKind::Deposition));
     if has_deposition_tag {
         out.push(DocType::Deposition);
     }
 
     // Email thread: any speaker-turn detected as Email.
-    let has_email_header = ctx
-        .speaker_turns
-        .iter()
-        .any(|t| matches!(t.kind, aco_text::TurnKind::Email));
+    let has_email_header =
+        ctx.speaker_turns.iter().any(|t| matches!(t.kind, aco_text::TurnKind::Email));
     if has_email_header {
         out.push(DocType::EmailThread);
     }
@@ -207,15 +224,28 @@ fn count_numerics(ctx: &PatternContext) -> usize {
     ctx.turns.iter().filter(|t| rx.is_match(&t.body)).count()
 }
 
-impl PartialOrd for DocType { fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) } }
-impl Ord for DocType { fn cmp(&self, other: &Self) -> std::cmp::Ordering { (self.as_str()).cmp(other.as_str()) } }
+impl PartialOrd for DocType {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for DocType {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        (self.as_str()).cmp(other.as_str())
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::context::Turn;
 
-    fn ctx<'a>(text: &'a str, turns: &'a [Turn], speaker_turns: &'a [aco_text::SpeakerTurn], lex: &'a aco_lex::LexicalFeatures) -> PatternContext<'a> {
+    fn ctx<'a>(
+        text: &'a str,
+        turns: &'a [Turn],
+        speaker_turns: &'a [aco_text::SpeakerTurn],
+        lex: &'a aco_lex::LexicalFeatures,
+    ) -> PatternContext<'a> {
         static EMPTY_SS: &[aco_text::SpeechSpan] = &[];
         PatternContext::new(text, turns, EMPTY_SS, speaker_turns, lex)
     }
@@ -236,9 +266,24 @@ mod tests {
     fn flags_negotiation_dispute_with_no_denial() {
         // Negotiation text with numbers but no denial.
         let turns = vec![
-            Turn { idx: 0, speaker: Some("A".into()), body: "Price is $100.".into(), char_offset: 0 },
-            Turn { idx: 1, speaker: Some("B".into()), body: "We can offer $95.".into(), char_offset: 0 },
-            Turn { idx: 2, speaker: Some("A".into()), body: "Let's settle at $98.".into(), char_offset: 0 },
+            Turn {
+                idx: 0,
+                speaker: Some("A".into()),
+                body: "Price is $100.".into(),
+                char_offset: 0,
+            },
+            Turn {
+                idx: 1,
+                speaker: Some("B".into()),
+                body: "We can offer $95.".into(),
+                char_offset: 0,
+            },
+            Turn {
+                idx: 2,
+                speaker: Some("A".into()),
+                body: "Let's settle at $98.".into(),
+                char_offset: 0,
+            },
         ];
         let speaker_turns: Vec<aco_text::SpeakerTurn> = Vec::new();
         let lex = aco_lex::LexicalFeatures::default();

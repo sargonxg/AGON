@@ -4,11 +4,14 @@
 //! grounded in evidence spans.
 #![forbid(unsafe_code)]
 
+mod migrations;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sqlx::postgres::PgPoolOptions;
-use sqlx::{PgPool, Postgres, Row, Transaction};
+use sqlx_core as sqlx;
+use sqlx_core::{row::Row, transaction::Transaction};
+use sqlx_postgres::{PgPool, PgPoolOptions, Postgres};
 use std::collections::HashMap;
 use std::time::Duration;
 use thiserror::Error;
@@ -73,7 +76,7 @@ impl Store {
     }
 
     pub async fn migrate(&self) -> Result<(), StoreError> {
-        sqlx::migrate!("../../migrations").run(&self.pool).await?;
+        sqlx::migrate::Migrator::new(migrations::EmbeddedMigrations).await?.run(&self.pool).await?;
         Ok(())
     }
 
@@ -93,7 +96,7 @@ impl Store {
     }
 
     pub async fn recent_sessions(&self, limit: i64) -> Result<Vec<SessionSummary>, StoreError> {
-        let rows = sqlx::query(
+        let rows = sqlx::query::query(
             r#"
             SELECT id, created_at, model, friction_score,
                    n_actors, n_claims, n_events, n_patterns, n_contradictions,
@@ -126,7 +129,7 @@ impl Store {
     }
 
     pub async fn get_session(&self, id: Uuid) -> Result<Option<Session>, StoreError> {
-        let row = sqlx::query(
+        let row = sqlx::query::query(
             r#"
             SELECT id, created_at, model, input_tokens, output_tokens, elapsed_ms,
                    source_text, friction_score, n_actors, n_claims, n_events,
@@ -161,7 +164,7 @@ async fn insert_session_tx(
     tx: &mut Transaction<'_, Postgres>,
     s: &Session,
 ) -> Result<(), StoreError> {
-    sqlx::query(
+    sqlx::query::query(
         r#"
         INSERT INTO sessions
             (id, created_at, model, input_tokens, output_tokens, elapsed_ms,
@@ -213,7 +216,7 @@ async fn insert_typed_perception_tx(
     let chunk_id = deterministic_id("chunk", &format!("{document_id}:0:{source_hash}"));
     let char_end = s.source_text.chars().count() as i32;
 
-    sqlx::query(
+    sqlx::query::query(
         r#"
         INSERT INTO documents (id, session_id, source_hash, title, source_kind, raw_metadata)
         VALUES ($1, $2, $3, 'perception input', 'text', $4)
@@ -227,7 +230,7 @@ async fn insert_typed_perception_tx(
     .execute(&mut **tx)
     .await?;
 
-    sqlx::query(
+    sqlx::query::query(
         r#"
         INSERT INTO chunks (id, document_id, ordinal, text, char_start, char_end, source_hash)
         VALUES ($1, $2, 0, $3, 0, $4, $5)
@@ -268,7 +271,7 @@ async fn insert_typed_perception_tx(
             .await?;
             n_evidence_spans += 1;
 
-            sqlx::query(
+            sqlx::query::query(
                 r#"
                 INSERT INTO actors (id, session_id, canonical_name, kind, evidence_span_id, raw_json)
                 VALUES ($1, $2, $3, $4, $5, $6)
@@ -320,7 +323,7 @@ async fn insert_typed_perception_tx(
 
             let actor_id =
                 str_field(claim, "actor_id").map(|id| stable_external_id("actor", id, id));
-            sqlx::query(
+            sqlx::query::query(
                 r#"
                 INSERT INTO claims (id, session_id, actor_id, text, polarity, evidence_span_id, raw_json)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -368,7 +371,7 @@ async fn insert_typed_perception_tx(
             .await?;
             n_evidence_spans += 1;
 
-            sqlx::query(
+            sqlx::query::query(
                 r#"
                 INSERT INTO events (id, session_id, label, event_time, evidence_span_id, raw_json)
                 VALUES ($1, $2, $3, $4, $5, $6)
@@ -411,7 +414,7 @@ async fn insert_typed_perception_tx(
 
             let actor_id =
                 str_field(commitment, "by_actor").map(|id| stable_external_id("actor", id, id));
-            sqlx::query(
+            sqlx::query::query(
                 r#"
                 INSERT INTO commitments
                     (id, session_id, by_actor_id, subject, deadline, status, evidence_span_id, raw_json)
@@ -457,7 +460,7 @@ async fn insert_typed_perception_tx(
 
             let actor_id =
                 str_field(pattern, "actor_id").map(|id| stable_external_id("actor", id, id));
-            sqlx::query(
+            sqlx::query::query(
                 r#"
                 INSERT INTO patterns
                     (id, session_id, kind, actor_id, confidence, evidence_span_id, raw_json)
@@ -500,7 +503,7 @@ async fn insert_typed_perception_tx(
                 deterministic_id("contradiction", &format!("{claim_a}:{claim_b}"));
             let source = str_field(contradiction, "source").unwrap_or("model_suggested");
             let confidence = contradiction.get("confidence").and_then(Value::as_f64).unwrap_or(0.5);
-            sqlx::query(
+            sqlx::query::query(
                 r#"
                 INSERT INTO contradictions
                     (id, session_id, claim_a, claim_b, materiality, source, confidence, rationale, raw_json)
@@ -564,7 +567,7 @@ async fn insert_evidence_span(
         Some((start, end)) => (Some(start as i32), Some(end as i32), "verified"),
         None => (None, None, "unresolved"),
     };
-    sqlx::query(
+    sqlx::query::query(
         r#"
         INSERT INTO evidence_spans
             (id, session_id, document_id, chunk_id, primitive_kind, primitive_id,
@@ -606,7 +609,7 @@ async fn insert_document_segments(
     for segment in segments {
         let raw_id = str_field(segment, "id").unwrap_or("segment");
         let segment_id = deterministic_id("segment", &format!("{}:{raw_id}", s.id));
-        sqlx::query(
+        sqlx::query::query(
             r#"
             INSERT INTO document_segments
                 (id, session_id, document_id, kind, label, char_start, char_end, raw_json)
@@ -647,7 +650,7 @@ async fn insert_neural_signals(
         let b = str_field(signal, "b").unwrap_or("");
         let kind = str_field(signal, "kind").unwrap_or("signal");
         let signal_id = deterministic_id("neural", &format!("{}:{kind}:{a}:{b}", s.id));
-        sqlx::query(
+        sqlx::query::query(
             r#"
             INSERT INTO neural_signals
                 (id, session_id, kind, source_id, target_id, score, model, rationale, raw_json)
@@ -684,7 +687,7 @@ async fn insert_inference_findings(
     for finding in findings {
         let raw_id = str_field(finding, "id").unwrap_or("finding");
         let finding_id = deterministic_id("finding", &format!("{}:{raw_id}", s.id));
-        sqlx::query(
+        sqlx::query::query(
             r#"
             INSERT INTO inference_findings
                 (id, session_id, kind, severity, confidence, source, rationale, raw_json)
@@ -721,7 +724,7 @@ async fn insert_quality_gates(
     for gate in gates {
         let raw_id = str_field(gate, "id").unwrap_or("gate");
         let gate_id = deterministic_id("gate", &format!("{}:{raw_id}", s.id));
-        sqlx::query(
+        sqlx::query::query(
             r#"
             INSERT INTO quality_gates
                 (id, session_id, label, status, score, detail, raw_json)
@@ -753,7 +756,7 @@ async fn insert_actor_alias(
     alias: &str,
     source: &str,
 ) -> Result<(), StoreError> {
-    sqlx::query(
+    sqlx::query::query(
         r#"
         INSERT INTO actor_aliases (actor_id, alias, normalized_alias, source)
         VALUES ($1, $2, $3, $4)
@@ -780,7 +783,7 @@ async fn insert_graph_edge(
 ) -> Result<(), StoreError> {
     let edge_id =
         deterministic_id("edge", &format!("{session_id}:{source_id}:{edge_type}:{target_id}"));
-    sqlx::query(
+    sqlx::query::query(
         r#"
         INSERT INTO graph_edges (id, session_id, source_id, target_id, edge_type, weight, raw_json)
         VALUES ($1, $2, $3, $4, $5, $6, $7)

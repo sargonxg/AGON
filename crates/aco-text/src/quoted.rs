@@ -33,10 +33,9 @@ const QUOTE_PAIRS: &[(char, char)] = &[
 ];
 
 const REPORTING_VERBS: &[&str] = &[
-    "said", "says", "told", "tells", "wrote", "writes",
-    "claimed", "claims", "replied", "replies", "stated", "states",
-    "noted", "notes", "observed", "observes", "added", "adds",
-    "remarked", "remarks", "asserted", "asserts", "denied", "denies",
+    "said", "says", "told", "tells", "wrote", "writes", "claimed", "claims", "replied", "replies",
+    "stated", "states", "noted", "notes", "observed", "observes", "added", "adds", "remarked",
+    "remarks", "asserted", "asserts", "denied", "denies",
 ];
 
 /// Detect speech spans in canonical text. Char offsets reference the canonical text.
@@ -94,12 +93,12 @@ fn detect_reported(text: &str) -> Vec<SpeechSpan> {
             let abs = start + idx;
             // speaker is the word(s) before `verb`
             let before = &text[..abs];
-            let speaker_hint = before.rsplit_once(|c: char| c == '.' || c == '\n').map_or(before, |(_, w)| w);
-            let speaker_hint = speaker_hint.trim().split_whitespace().last().map(str::to_string);
+            let speaker_hint = before.rsplit_once(['.', '\n']).map_or(before, |(_, w)| w);
+            let speaker_hint = speaker_hint.split_whitespace().last().map(str::to_string);
             // claim text runs from after `that ` to next sentence terminator
             let claim_start = abs + needle.len();
             let claim_end = text[claim_start..]
-                .find(|c: char| c == '.' || c == '!' || c == '?')
+                .find(['.', '!', '?'])
                 .map_or(text.len(), |p| claim_start + p + 1);
             spans.push(SpeechSpan {
                 kind: SpeechKind::Reported,
@@ -122,7 +121,10 @@ fn sniff_speaker_before(text: &str, byte_idx: usize) -> Option<String> {
     for verb in REPORTING_VERBS {
         if let Some(pos) = trimmed.to_lowercase().rfind(verb) {
             let speaker = &trimmed[..pos];
-            return speaker.trim().rsplit_once(' ').map(|(_, last)| last.to_string())
+            return speaker
+                .trim()
+                .rsplit_once(' ')
+                .map(|(_, last)| last.to_string())
                 .or_else(|| Some(speaker.trim().to_string()))
                 .filter(|s| !s.is_empty());
         }
@@ -138,7 +140,9 @@ mod tests {
     fn detects_direct_quote_curly() {
         let t = "Sam said, \u{201C}I never agreed.\u{201D}";
         let s = detect_speech(t);
-        assert!(s.iter().any(|x| x.kind == SpeechKind::Direct && x.quote_text == "I never agreed."));
+        assert!(s
+            .iter()
+            .any(|x| x.kind == SpeechKind::Direct && x.quote_text == "I never agreed."));
     }
 
     #[test]

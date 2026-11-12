@@ -1,5 +1,6 @@
 name: docker
 on:
+  workflow_dispatch:
   push:
     tags: ["v*"]
     branches: [main]
@@ -24,5 +25,22 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
+          load: ${{ !startsWith(github.ref, 'refs/tags/') }}
           push: ${{ startsWith(github.ref, 'refs/tags/') }}
-          tags: ghcr.io/sargonxg/agon:${{ github.ref_name }}
+          tags: ghcr.io/sargonxg/agon:${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('ci-{0}', github.sha) }}
+
+      - name: Smoke-test the non-release image
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        env:
+          TEST_IMAGE: ghcr.io/sargonxg/agon:ci-${{ github.sha }}
+        run: |
+          test_container="agon-smoke-${GITHUB_RUN_ID}"
+          trap 'docker stop "$test_container" >/dev/null 2>&1 || true' EXIT
+          docker pull curlimages/curl:8.17.0
+          docker run --detach --rm --name "$test_container" --network none --env AGON_BACKEND=mock --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp "$TEST_IMAGE"
+          for attempt in $(seq 1 60); do
+            if docker run --rm --network "container:$test_container" --cap-drop=ALL --security-opt=no-new-privileges curlimages/curl:8.17.0 --fail --silent http://127.0.0.1:8080/healthz; then exit 0; fi
+            sleep 1
+          done
+          docker logs "$test_container"
+          exit 1

@@ -882,7 +882,7 @@ Set `region = "europe-west4"` in `terraform.tfvars` for EU residency. All servic
 
 ## 18. Licensing posture
 
-Four options (Apache 2.0 / MIT, BUSL 1.1, FSL, AGPL 3.0). The workspace split allows mixed licensing: core under permissive, commercial surfaces under TACITUS commercial. Decision deferred to TACITUS leadership. Until LICENSE is committed, all rights reserved.
+On 12 November 2026 the repository owner selected Apache-2.0 for original TACITUS code. See LICENSE and NOTICE. Existing third-party code, model weights, source evidence and research material retain their own rights and attribution; the root grant does not relicense them.
 
 ---
 

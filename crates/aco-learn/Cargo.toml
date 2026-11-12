@@ -3,7 +3,7 @@ name = "aco-learn"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-license-file.workspace = true
+license.workspace = true
 repository.workspace = true
 description = "Learning loop: correction log + active learning + retraining triggers."
 

@@ -3,7 +3,7 @@ name = "aco-infer"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-license-file.workspace = true
+license.workspace = true
 repository.workspace = true
 description = "Symbolic reasoning: ascent Datalog + z3 SMT + good_lp + abduction."
 
@@ -18,6 +18,5 @@ tracing = { workspace = true }
 anyhow = { workspace = true }
 ascent = { workspace = true }
 blake3 = { workspace = true }
-z3 = { workspace = true }
 good_lp = { workspace = true }
 chrono = { workspace = true }

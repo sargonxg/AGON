@@ -20,14 +20,17 @@ pub struct LexicalFeatures {
     pub third_person: u32,
 }
 
-const STRONG_HEDGES_EN: &[&str] = &["clearly", "obviously", "definitely", "certainly", "undoubtedly"];
+const STRONG_HEDGES_EN: &[&str] =
+    &["clearly", "obviously", "definitely", "certainly", "undoubtedly"];
 const MODERATE_HEDGES_EN: &[&str] = &["probably", "likely", "presumably", "apparently"];
 const WEAK_HEDGES_EN: &[&str] = &["perhaps", "possibly", "maybe", "arguably", "somewhat"];
 const MODALS_EN: &[&str] = &["must", "should", "could", "might", "may", "would", "shall", "will"];
 
 static PASSIVE_RX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b(was|were|been|being|is|are|am)\s+(\w+ed|made|done|taken|given|seen|said|told)\b")
-        .expect("PASSIVE_RX is a valid regex")
+    Regex::new(
+        r"\b(was|were|been|being|is|are|am)\s+(\w+ed|made|done|taken|given|seen|said|told)\b",
+    )
+    .expect("PASSIVE_RX is a valid regex")
 });
 
 /// Extract English lexical features. Pure function; safe to call from many threads.
@@ -50,10 +53,13 @@ pub fn extract_en(text: &str) -> LexicalFeatures {
 
     f.passive_voice_hits = u32::try_from(PASSIVE_RX.find_iter(&lower).count()).unwrap_or(u32::MAX);
 
-    f.first_person_singular = count_word(&lower, "i") + count_word(&lower, "me") + count_word(&lower, "my");
-    f.first_person_plural = count_word(&lower, "we") + count_word(&lower, "us") + count_word(&lower, "our");
+    f.first_person_singular =
+        count_word(&lower, "i") + count_word(&lower, "me") + count_word(&lower, "my");
+    f.first_person_plural =
+        count_word(&lower, "we") + count_word(&lower, "us") + count_word(&lower, "our");
     f.second_person = count_word(&lower, "you") + count_word(&lower, "your");
-    f.third_person = count_word(&lower, "he") + count_word(&lower, "she") + count_word(&lower, "they");
+    f.third_person =
+        count_word(&lower, "he") + count_word(&lower, "she") + count_word(&lower, "they");
 
     f
 }
@@ -62,16 +68,15 @@ fn count_word(haystack: &str, word: &str) -> u32 {
     use std::collections::HashMap;
     use std::sync::RwLock;
 
-    static CACHE: Lazy<RwLock<HashMap<String, Regex>>> =
-        Lazy::new(|| RwLock::new(HashMap::new()));
+    static CACHE: Lazy<RwLock<HashMap<String, Regex>>> = Lazy::new(|| RwLock::new(HashMap::new()));
 
     // Fast path: cached compiled regex.
     if let Some(rx) = CACHE.read().expect("cache poisoned").get(word) {
         return u32::try_from(rx.find_iter(haystack).count()).unwrap_or(u32::MAX);
     }
     // Slow path: compile once + insert.
-    let rx = Regex::new(&format!(r"\b{}\b", regex::escape(word)))
-        .expect("count_word regex compile");
+    let rx =
+        Regex::new(&format!(r"\b{}\b", regex::escape(word))).expect("count_word regex compile");
     let count = u32::try_from(rx.find_iter(haystack).count()).unwrap_or(u32::MAX);
     CACHE.write().expect("cache poisoned").insert(word.to_string(), rx);
     count

@@ -26,7 +26,10 @@ pub struct Segment {
 /// `[.!?]` followed by whitespace + uppercase. Honors abbreviations from a small list.
 pub fn segment(canonical_text: &str) -> Vec<Segment> {
     let mut out = Vec::new();
-    let abbrevs = ["Mr.", "Mrs.", "Ms.", "Dr.", "St.", "e.g.", "i.e.", "cf.", "vs.", "Inc.", "Ltd.", "No.", "Fed.", "Cir."];
+    let abbrevs = [
+        "Mr.", "Mrs.", "Ms.", "Dr.", "St.", "e.g.", "i.e.", "cf.", "vs.", "Inc.", "Ltd.", "No.",
+        "Fed.", "Cir.",
+    ];
 
     let mut cursor: u32 = 0;
     for para in canonical_text.split("\n\n") {

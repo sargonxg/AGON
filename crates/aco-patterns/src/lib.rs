@@ -58,9 +58,9 @@ pub trait ConflictPattern: Send + Sync {
 #[must_use]
 pub fn detect_all(ctx: &PatternContext) -> Vec<PatternMatch> {
     let detectors: Vec<Box<dyn ConflictPattern>> = vec![
-        Box::new(DarvoDetector::default()),
-        Box::new(AnchoringDetector::default()),
-        Box::new(ConspicuousAbsenceDetector::default()),
+        Box::new(DarvoDetector),
+        Box::new(AnchoringDetector),
+        Box::new(ConspicuousAbsenceDetector),
     ];
     detectors.iter().flat_map(|d| d.detect(ctx)).collect()
 }
