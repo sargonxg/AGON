@@ -2,6 +2,7 @@
 FROM rust:1.95.0-slim-bookworm AS builder
 
 WORKDIR /app
+ARG CARGO_BUILD_JOBS=2
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       pkg-config libssl-dev ca-certificates g++ \
