@@ -199,7 +199,7 @@ impl VertexAiBackend {
                 .map_err(|e| LlmError::Http(e.to_string()))?;
 
             let status = resp.status().as_u16();
-            let is_transient = matches!(status, 502 | 503 | 504);
+            let is_transient = matches!(status, 502..=504);
             if !is_transient || attempt == MAX_ATTEMPTS {
                 return Ok(resp);
             }

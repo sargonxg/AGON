@@ -3,9 +3,11 @@
 <!-- tacitus-practical-entry -->
 ## Purpose, code and a playable introduction
 
+[Current local Rust verification and remaining acceptance gates](docs/LOCAL_VERIFICATION_2026-11-12.md)
+
 Represent claims, actors, interests, constraints and commitments as reviewable objects anchored to source spans.
 
-**Experimental conflict engine.** Experimental perception engine; inferred interests and narratives are proposals. Licensing remains unresolved in the current README.
+**Experimental conflict engine.** Experimental perception engine; inferred interests and narratives are proposals. The current LICENSE reserves all rights until a final licensing decision; it grants no redistribution permission.
 
 [Setup, code walkthrough, research & verification](TACITUS_GUIDE.md) · [Play the original 8-bit teaching adventure](tacitus-demo/index.html) · [Demo credits](tacitus-demo/CREDITS.md)
 

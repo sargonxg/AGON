@@ -52,7 +52,9 @@ pub async fn ensure_hf_file(
         }
     }
 
-    if let Some(parent) = dest.parent() { std::fs::create_dir_all(parent).ok(); }
+    if let Some(parent) = dest.parent() {
+        std::fs::create_dir_all(parent).ok();
+    }
 
     let url = format!("https://huggingface.co/{repo}/resolve/main/{file}");
     let mut req = reqwest::Client::new().get(&url);
@@ -61,11 +63,7 @@ pub async fn ensure_hf_file(
     }
     let resp = req.send().await.map_err(|e| EncodeError::Download(e.to_string()))?;
     if !resp.status().is_success() {
-        return Err(EncodeError::Download(format!(
-            "{} returned {}",
-            url,
-            resp.status()
-        )));
+        return Err(EncodeError::Download(format!("{} returned {}", url, resp.status())));
     }
     let bytes = resp.bytes().await.map_err(|e| EncodeError::Download(e.to_string()))?;
     std::fs::write(&dest, &bytes).map_err(|e| EncodeError::Download(e.to_string()))?;

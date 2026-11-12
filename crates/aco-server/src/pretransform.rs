@@ -365,20 +365,26 @@ fn profile(input: &str, pc: &PreCanonical) -> DocumentProfile {
     // NEW — Wire aco-text speech detection.
     let speech = aco_text::detect_speech(input);
     let direct = u32::try_from(
-        speech.iter().filter(|s| matches!(s.kind, aco_text::SpeechKind::Direct)).count()
-    ).unwrap_or(u32::MAX);
+        speech.iter().filter(|s| matches!(s.kind, aco_text::SpeechKind::Direct)).count(),
+    )
+    .unwrap_or(u32::MAX);
     let reported = u32::try_from(
-        speech.iter().filter(|s| matches!(s.kind, aco_text::SpeechKind::Reported)).count()
-    ).unwrap_or(u32::MAX);
+        speech.iter().filter(|s| matches!(s.kind, aco_text::SpeechKind::Reported)).count(),
+    )
+    .unwrap_or(u32::MAX);
     let speech_spans = Some(SpeechSpanSummary { direct, reported });
 
     // Extra reading notes derived from new signals.
-    let mut reading_notes = reading_notes;
     if coalition_signal {
-        reading_notes.push("coalition signal: 'we' significantly outnumbers 'I' — check for alliance formation".into());
+        reading_notes.push(
+            "coalition signal: 'we' significantly outnumbers 'I' — check for alliance formation"
+                .into(),
+        );
     }
     if agency_hiding {
-        reading_notes.push("agency-hiding: ≥2 passive constructions — check for accountability evasion".into());
+        reading_notes.push(
+            "agency-hiding: ≥2 passive constructions — check for accountability evasion".into(),
+        );
     }
     if lex.strong_hedges >= 2 {
         reading_notes.push("strong-hedge density: ≥2 'clearly/obviously/definitely' — possible overconfidence claim".into());

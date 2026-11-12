@@ -25,9 +25,15 @@ static NUMERIC_RX: Lazy<Regex> = Lazy::new(|| {
 pub struct AnchoringDetector;
 
 impl ConflictPattern for AnchoringDetector {
-    fn id(&self) -> &'static str { "anchoring" }
-    fn version(&self) -> &'static str { "0.1.0" }
-    fn public_name(&self) -> &'static str { "first-number-effect" }
+    fn id(&self) -> &'static str {
+        "anchoring"
+    }
+    fn version(&self) -> &'static str {
+        "0.1.0"
+    }
+    fn public_name(&self) -> &'static str {
+        "first-number-effect"
+    }
 
     fn detect(&self, ctx: &PatternContext) -> Vec<PatternMatch> {
         let mut anchor: Option<(usize, String, f64)> = None;
@@ -38,14 +44,16 @@ impl ConflictPattern for AnchoringDetector {
                 let raw = cap.get(0).map_or("", |m| m.as_str()).to_string();
                 let mag_str = cap.get(1).map_or("", |m| m.as_str()).replace(',', "");
                 let Ok(mag) = mag_str.parse::<f64>() else { continue };
-                if mag < 1.0 { continue; }  // skip "0.5" — too noisy
+                if mag < 1.0 {
+                    continue;
+                } // skip "0.5" — too noisy
 
                 match &anchor {
                     None => anchor = Some((i, raw, mag)),
                     Some((a_idx, _, a_mag)) if i > *a_idx => {
                         // Within ±30% of anchor → counts as anchored response.
                         let ratio = mag / a_mag;
-                        if ratio >= 0.70 && ratio <= 1.30 {
+                        if (0.70..=1.30).contains(&ratio) {
                             nearby.push((i, raw, mag));
                         }
                     }
@@ -55,7 +63,9 @@ impl ConflictPattern for AnchoringDetector {
         }
 
         let Some((anchor_idx, anchor_raw, anchor_mag)) = anchor else { return Vec::new() };
-        if nearby.is_empty() { return Vec::new() }
+        if nearby.is_empty() {
+            return Vec::new();
+        }
 
         // Confidence: anchor + ≥2 nearby = 0.75, +1 nearby = 0.55, else 0.40
         let confidence = match nearby.len() {
@@ -64,7 +74,8 @@ impl ConflictPattern for AnchoringDetector {
             _ => 0.75,
         };
 
-        let speaker = ctx.turns
+        let speaker = ctx
+            .turns
             .get(anchor_idx)
             .and_then(|t| t.speaker.as_ref())
             .cloned()
@@ -120,7 +131,11 @@ impl ConflictPattern for AnchoringDetector {
 fn canonical_actor_id(label: &str) -> String {
     let mut s = String::from("actor_");
     for c in label.chars() {
-        if c.is_ascii_alphanumeric() { s.push(c.to_ascii_lowercase()); } else { s.push('_'); }
+        if c.is_ascii_alphanumeric() {
+            s.push(c.to_ascii_lowercase());
+        } else {
+            s.push('_');
+        }
     }
     s
 }
@@ -139,9 +154,24 @@ mod tests {
     #[test]
     fn detects_classic_anchoring() {
         let turns = vec![
-            Turn { idx: 0, speaker: Some("Vendor".into()), body: "Our list price is $50,000.".into(), char_offset: 0 },
-            Turn { idx: 1, speaker: Some("Buyer".into()), body: "We can do $48,000.".into(), char_offset: 0 },
-            Turn { idx: 2, speaker: Some("Vendor".into()), body: "Let's settle at $52,000.".into(), char_offset: 0 },
+            Turn {
+                idx: 0,
+                speaker: Some("Vendor".into()),
+                body: "Our list price is $50,000.".into(),
+                char_offset: 0,
+            },
+            Turn {
+                idx: 1,
+                speaker: Some("Buyer".into()),
+                body: "We can do $48,000.".into(),
+                char_offset: 0,
+            },
+            Turn {
+                idx: 2,
+                speaker: Some("Vendor".into()),
+                body: "Let's settle at $52,000.".into(),
+                char_offset: 0,
+            },
         ];
         let lex = aco_lex::LexicalFeatures::default();
         let c = ctx(&turns, &lex);
@@ -166,8 +196,18 @@ mod tests {
     #[test]
     fn no_match_when_counter_far_from_anchor() {
         let turns = vec![
-            Turn { idx: 0, speaker: Some("A".into()), body: "I want $1,000.".into(), char_offset: 0 },
-            Turn { idx: 1, speaker: Some("B".into()), body: "How about $10?".into(), char_offset: 0 },
+            Turn {
+                idx: 0,
+                speaker: Some("A".into()),
+                body: "I want $1,000.".into(),
+                char_offset: 0,
+            },
+            Turn {
+                idx: 1,
+                speaker: Some("B".into()),
+                body: "How about $10?".into(),
+                char_offset: 0,
+            },
         ];
         let lex = aco_lex::LexicalFeatures::default();
         let c = ctx(&turns, &lex);
@@ -178,8 +218,18 @@ mod tests {
     #[test]
     fn detects_percentage_anchoring() {
         let turns = vec![
-            Turn { idx: 0, speaker: Some("A".into()), body: "I think 20% is fair.".into(), char_offset: 0 },
-            Turn { idx: 1, speaker: Some("B".into()), body: "Closer to 22%.".into(), char_offset: 0 },
+            Turn {
+                idx: 0,
+                speaker: Some("A".into()),
+                body: "I think 20% is fair.".into(),
+                char_offset: 0,
+            },
+            Turn {
+                idx: 1,
+                speaker: Some("B".into()),
+                body: "Closer to 22%.".into(),
+                char_offset: 0,
+            },
             Turn { idx: 2, speaker: Some("A".into()), body: "Meet at 21%.".into(), char_offset: 0 },
         ];
         let lex = aco_lex::LexicalFeatures::default();

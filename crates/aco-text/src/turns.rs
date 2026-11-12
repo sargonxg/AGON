@@ -32,13 +32,11 @@ static DEPOSITION_RX: Lazy<Regex> = Lazy::new(|| {
 });
 
 static EMAIL_HEADER_RX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?im)^From:\s*([^\n<]+?)(?:\s*<[^>]+>)?\s*$")
-        .expect("EMAIL_HEADER_RX valid")
+    Regex::new(r"(?im)^From:\s*([^\n<]+?)(?:\s*<[^>]+>)?\s*$").expect("EMAIL_HEADER_RX valid")
 });
 
 static SLACK_RX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?m)^\[(?:\d{1,2}:\d{2}(?:\s*[AP]M)?)\]\s+([\w\s\.]+?):")
-        .expect("SLACK_RX valid")
+    Regex::new(r"(?m)^\[(?:\d{1,2}:\d{2}(?:\s*[AP]M)?)\]\s+([\w\s\.]+?):").expect("SLACK_RX valid")
 });
 
 #[must_use]
@@ -109,7 +107,9 @@ mod tests {
     fn email_header() {
         let t = "From: Alex Chen <alex@example.com>\nSent: Monday\nSubject: re: deck";
         let turns = detect_turns(t);
-        assert!(turns.iter().any(|t| t.speaker_surface == "Alex Chen" && t.kind == TurnKind::Email));
+        assert!(turns
+            .iter()
+            .any(|t| t.speaker_surface == "Alex Chen" && t.kind == TurnKind::Email));
     }
 
     #[test]

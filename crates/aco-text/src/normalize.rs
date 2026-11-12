@@ -117,11 +117,7 @@ pub fn normalize(raw: &RawDocument) -> NormalizedDocument {
     }
 
     // Strip trailing whitespace per line.
-    let canonical: String = canonical
-        .lines()
-        .map(|l| l.trim_end())
-        .collect::<Vec<_>>()
-        .join("\n");
+    let canonical: String = canonical.lines().map(|l| l.trim_end()).collect::<Vec<_>>().join("\n");
 
     let doc_hash = blake3::hash(canonical.as_bytes()).to_hex().to_string();
 
@@ -137,16 +133,15 @@ pub fn normalize(raw: &RawDocument) -> NormalizedDocument {
 
 /// Project canonical character range to raw byte range using the sparse map.
 /// Falls back to a 1:1 assumption when no map entries straddle the range.
-pub fn raw_offsets(doc: &NormalizedDocument, canonical_start: u32, canonical_end: u32) -> (u32, u32) {
+pub fn raw_offsets(
+    doc: &NormalizedDocument,
+    canonical_start: u32,
+    canonical_end: u32,
+) -> (u32, u32) {
     let find = |c_idx: u32| -> u32 {
         // Find largest map entry with canonical <= c_idx.
-        let anchor = doc
-            .raw_byte_map
-            .iter()
-            .rev()
-            .find(|(c, _)| *c <= c_idx)
-            .copied()
-            .unwrap_or((0, 0));
+        let anchor =
+            doc.raw_byte_map.iter().rev().find(|(c, _)| *c <= c_idx).copied().unwrap_or((0, 0));
         let (c_anchor, r_anchor) = anchor;
         // Assume 1:1 from anchor (good for ASCII-dominant text).
         r_anchor + (c_idx - c_anchor)

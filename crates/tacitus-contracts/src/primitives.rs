@@ -175,7 +175,7 @@ pub enum AllenRelation {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Commitment {
     pub id: String,
-    pub committer: String,    // actor id
+    pub committer: String, // actor id
     pub beneficiary: Option<String>,
     pub subject: String,
     pub deadline: Option<String>,
@@ -357,8 +357,8 @@ pub enum PowerVector {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NarrativeFrame {
     pub id: String,
-    pub framer: String, // actor id
-    pub frame_kind: String, // controlled vocab loaded at runtime
+    pub framer: String,               // actor id
+    pub frame_kind: String,           // controlled vocab loaded at runtime
     pub claims_in_frame: Vec<String>, // claim ids
     pub evidence_spans: Vec<EvidenceSpan>,
 }
